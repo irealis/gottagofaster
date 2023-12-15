@@ -1,0 +1,8 @@
+{
+    "name": "map2",
+    "file": "map2.glb",
+    "start_pos": [0.0,10.0,0.0],
+    "end_pos": [516.0,60.0,215.0],
+    "end_rotation": 90.0,
+    "checkpoints": [[0.0,-5.0,0.0]]
+}

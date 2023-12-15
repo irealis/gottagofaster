@@ -1,0 +1,33 @@
+[package]
+name = "gottagofaster"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "gottagofaster"
+path = "src/lib.rs"
+crate-type = ["rlib"]
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+codegen-units = 1 # Slower compile but faster at runtime
+
+[dependencies]
+bevy = { version = "0.12.1", features = ["dynamic_linking", "serialize", "jpeg", "trace", "trace_tracy"] }
+bevy-inspector-egui = "0.21.0"
+bevy_editor_pls = "0.6.0"
+bevy_egui = "0.23.0"
+bevy_framepace = "0.14.1"
+bevy_hanabi = { git = "https://github.com/djeedai/bevy_hanabi", default-features = false, features = ["3d"] }
+bevy_mod_picking = "0.17.0"
+bevy_transform_gizmo = "0.9.0"
+bevy_tweening = { version = "0.9.0" }
+bevy_xpbd_3d = { version = "0.3.0", features = ["simd"] }
+rand = "0.8.5"
+serde = {version = "1.0.193", features = ["serde_derive"]}
+serde_json = "1.0.108"
