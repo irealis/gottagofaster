@@ -1,0 +1,11 @@
+{
+    "name": "urban",
+    "file": "urban.glb",
+    "start_pos": [0.0,10.0,0.0],
+    "end_pos": [516.0,60.0,215.0],
+    "end_rotation": 90.0,
+    "checkpoints": [{
+        "pos": [38.07664, -6.3976536, -3.7108347],
+        "rot": 90.0
+    }]
+}
