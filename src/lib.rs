@@ -12,6 +12,7 @@ mod vfx;
 
 use std::time::Duration;
 
+use assets::Animations;
 use bevy::{
     core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin},
     ecs::system::SystemId,
@@ -130,9 +131,8 @@ pub fn bevy_main() {
     dbg!(&app.is_plugin_added::<EguiPlugin>());
 
     #[cfg(debug_assertions)]
-    app.add_plugins(PhysicsDebugPlugin::default());
+    //app.add_plugins(PhysicsDebugPlugin::default());
     //.add_plugins(WorldInspectorPlugin::default());
-
     app.run();
 }
 
@@ -143,8 +143,6 @@ pub fn load_map(
     assetserver: Res<AssetServer>,
     mut effects: ResMut<Assets<EffectAsset>>,
 ) {
-    let player_model = assetserver.load("Fox.gltf#Scene0");
-
     commands.insert_resource(Animations(vec![
         assetserver.load("Fox.gltf#Animation5"), // idle
         assetserver.load("Fox.gltf#Animation3"), // gallop
@@ -157,7 +155,7 @@ pub fn load_map(
         Name::new("Player"),
         SceneBundle {
             transform: player_transform,
-            scene: player_model,
+            scene: asset_handles.fox.clone(),
             ..Default::default()
         },
         CameraLeash,
@@ -259,9 +257,6 @@ pub fn load_map(
         ));
     }
 }
-
-#[derive(Resource)]
-pub struct Animations(Vec<Handle<AnimationClip>>);
 
 pub fn update_animation(
     mut query: Query<(Entity, &LinearVelocity)>,

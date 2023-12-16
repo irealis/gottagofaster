@@ -11,7 +11,9 @@ use bevy_tweening::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{character_controller::CharacterController, map::Map, MapEntityMarker};
+use crate::{
+    assets::AssetHandles, character_controller::CharacterController, map::Map, MapEntityMarker,
+};
 
 pub struct GhostPlugin;
 
@@ -27,7 +29,8 @@ impl Plugin for GhostPlugin {
             .add_systems(Startup, register_oneshots)
             .add_systems(
                 Update,
-                ghost_recorder.run_if(in_state(crate::State::Playing)),
+                (make_ghost_scene_transparent, ghost_recorder)
+                    .run_if(in_state(crate::State::Playing)),
             );
     }
 }
@@ -96,6 +99,7 @@ pub fn ghost_recorder(
 
 pub fn replay_ghost(
     map: Res<Map>,
+    handles: Res<AssetHandles>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -126,24 +130,39 @@ pub fn replay_ghost(
 
     let sequence = Sequence::new(tweens);
 
-    let player = meshes.add(Mesh::from(shape::Capsule {
-        depth: 2.,
-        radius: 1.,
-        ..Default::default()
-    }));
-
     commands.spawn((
         Name::new("Ghost"),
-        PbrBundle {
-            mesh: player,
-            material: materials.add(StandardMaterial {
-                base_color: Color::rgba(0., 0.3, 1., 0.7),
-                cull_mode: None,
-                ..default()
-            }),
+        SceneBundle {
+            scene: handles.fox.clone(),
             ..Default::default()
         },
         Animator::new(sequence),
+        Ghost,
         MapEntityMarker,
     ));
+}
+
+fn make_ghost_scene_transparent(
+    mut commands: Commands,
+    query: Query<Entity, Added<Ghost>>,
+    children: Query<&Children>,
+    materials: Query<&Handle<StandardMaterial>>,
+    mut assets: ResMut<Assets<StandardMaterial>>,
+) {
+    for e in &query {
+        for child in children.iter_descendants(e) {
+            if let Ok(material) = materials.get(child) {
+                // Clone and overwrite the ghosts material.
+                // If not cloned and overwritten, the players also changes.
+                let mut material = assets.get(material).expect("Must have material.").clone();
+
+                material.alpha_mode = AlphaMode::Blend;
+                material.base_color.set_a(0.5);
+
+                let handle = assets.add(material);
+
+                commands.entity(child).insert(handle);
+            }
+        }
+    }
 }

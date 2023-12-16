@@ -86,6 +86,7 @@ pub fn ui_finish(
     mut commands: Commands,
     mut windows: Query<&mut Window>,
     oneshots: Res<StateOneshots>,
+    ghost_oneshots: Res<GhostOneshots>,
 ) {
     let ctx = contexts.ctx_mut();
     egui::Area::new("forg").show(ctx, |ui| {
@@ -106,6 +107,7 @@ pub fn ui_finish(
                         window.cursor.grab_mode = CursorGrabMode::Locked;
                         window.cursor.visible = false;
                         commands.run_system(oneshots.load_map);
+                        commands.run_system(ghost_oneshots.load);
                         state.set(State::Playing);
                     }
                     if ui.button("Back to menu").clicked() {
