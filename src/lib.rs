@@ -18,7 +18,7 @@ use bevy::{
     math::vec3,
     pbr::{CascadeShadowConfigBuilder, NotShadowCaster},
     prelude::*,
-    window::close_on_esc,
+    window::{close_on_esc, PresentMode},
 };
 use bevy_egui::EguiPlugin;
 use bevy_framepace::{FramepacePlugin, FramepaceSettings};
@@ -75,12 +75,17 @@ pub struct StateOneshots {
 pub fn bevy_main() {
     let mut app = App::new();
 
+    #[cfg(not(target_os = "darwin"))]
+    let present_mode = PresentMode::Mailbox;
+    #[cfg(target_os = "darwin")]
+    let present_mode = PresentMode::Fifo;
+
     app.add_state::<State>()
         .add_plugins((
             DefaultPlugins
                 .set(WindowPlugin {
                     primary_window: Some(Window {
-                        present_mode: bevy::window::PresentMode::Mailbox,
+                        present_mode,
                         ..Default::default()
                     }),
                     ..Default::default()
