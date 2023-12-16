@@ -131,7 +131,13 @@ pub fn bevy_main() {
     dbg!(&app.is_plugin_added::<EguiPlugin>());
 
     #[cfg(debug_assertions)]
-    app.add_plugins(PhysicsDebugPlugin::default());
+    app.add_plugins(PhysicsDebugPlugin::default())
+        .insert_resource(PhysicsDebugConfig {
+            raycast_color: Some(Color::WHITE),
+            raycast_point_color: Some(Color::PINK),
+            ..Default::default()
+        });
+
     //.add_plugins(WorldInspectorPlugin::default());
     app.run();
 }
@@ -172,6 +178,7 @@ pub fn load_map(
         Player,
         MapEntityMarker,
         Resetable((map.start_pos, map.start_pos)),
+        RayCaster::new(Vec3::new(0., 1., 0.), Vec3::ZERO).with_max_hits(1),
     ));
 
     commands.spawn((

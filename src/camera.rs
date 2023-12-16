@@ -6,9 +6,11 @@ use bevy::{
 };
 use bevy_xpbd_3d::{prelude::*, PhysicsSet};
 
+use crate::Player;
+
 pub const RADIANS_PER_DOT: f32 = 1.0 / 180.0;
 
-#[derive(Bundle, Debug)]
+#[derive(Bundle)]
 pub struct LeashedCameraBundle {
     pub camera: LeashedCamera,
     pub ignore_mouse: IgnoreMouseInput,
@@ -65,11 +67,7 @@ impl Plugin for LeashedCameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PostUpdate,
-            (
-                leash_camera,
-                toggle_camera_lock,
-                //camera_collisions.after(leash_camera),
-            )
+            (leash_camera, toggle_camera_lock, raycast_camera)
                 .after(PhysicsSet::Sync)
                 .before(TransformSystem::TransformPropagate)
                 .run_if(in_state(crate::State::Playing)),
@@ -99,21 +97,13 @@ fn toggle_camera_lock(
 }
 
 fn leash_camera(
-    view: Query<&Transform, (With<CameraLeash>, Without<Camera3d>)>,
-    mut cameras: Query<
-        (
-            &mut Transform,
-            &mut LeashedCamera,
-            &IgnoreMouseInput,
-            &CameraDistance,
-        ),
-        With<Camera3d>,
-    >,
+    mut player: Query<(&mut RayCaster, &Transform), (With<CameraLeash>, Without<Camera3d>)>,
+    mut cameras: Query<(&mut LeashedCamera, &IgnoreMouseInput, &CameraDistance), With<Camera3d>>,
     mut mouse_events: EventReader<MouseMotion>,
 ) {
-    let leash = view.single();
+    let (mut raycaster, leash_transform) = player.single_mut();
 
-    let mut leash_translation_offset = leash.translation;
+    let mut leash_translation_offset = leash_transform.translation;
     leash_translation_offset.y += 1.5;
 
     let mut mouse_delta = Vec2::ZERO;
@@ -121,7 +111,7 @@ fn leash_camera(
         mouse_delta += mouse_event.delta;
     }
 
-    for (mut transform, mut camera, ignore_mouse, distance) in &mut cameras {
+    for (mut camera, ignore_mouse, distance) in &mut cameras {
         if ignore_mouse.0 {
             continue;
         }
@@ -131,65 +121,28 @@ fn leash_camera(
             (camera.pitch - mouse_delta.y * RADIANS_PER_DOT * sensitivity).clamp(-PI / 2., PI / 2.);
         camera.yaw -= mouse_delta.x * RADIANS_PER_DOT * sensitivity;
 
-        let rot = Quat::from_euler(EulerRot::YXZ, camera.yaw, -camera.pitch, 0.);
-        transform.translation = leash_translation_offset + rot * vec3(0., 0., -distance.0);
-        transform.look_at(leash_translation_offset, Vec3::Y);
+        raycaster.direction = Quat::from_rotation_x(-camera.pitch) * vec3(0., 0., -distance.0);
     }
 }
 
-#[allow(clippy::type_complexity)]
-fn camera_collisions(
-    collisions: Res<Collisions>,
-    collider_parents: Query<&ColliderParent, Without<Sensor>>,
-    mut view: Query<(&RigidBody, &Rotation, &mut CameraDistance), With<LeashedCamera>>,
+fn raycast_camera(
+    player: Query<(&Transform, Option<&RayHits>), (With<RayCaster>, With<Player>)>,
+    mut camera: Query<(&mut Transform, &CameraDistance, &LeashedCamera), Without<Player>>,
 ) {
-    // Iterate through collisions and move the kinematic body to resolve penetration
-    for contacts in collisions.iter() {
-        // If the collision didn't happen during this substep, skip the collision
-        if !contacts.during_current_substep {
-            continue;
-        }
-
-        // Get the rigid body entities of the colliders (colliders could be children)
-        let Ok([collider_parent1, collider_parent2]) =
-            collider_parents.get_many([contacts.entity1, contacts.entity2])
-        else {
-            continue;
-        };
-
-        // Get the body of the character controller and whether it is the first
-        // or second entity in the collision.
-        let is_first: bool;
-        let (rb, rotation, mut distance) =
-            if let Ok(character) = view.get_mut(collider_parent1.get()) {
-                is_first = true;
-                character
-            } else if let Ok(character) = view.get_mut(collider_parent2.get()) {
-                is_first = false;
-                character
-            } else {
-                continue;
-            };
-
-        // This system only handles collision response for kinematic character controllers
-        if !rb.is_kinematic() {
-            continue;
-        }
-
-        // Iterate through contact manifolds and their contacts.
-        // Each contact in a single manifold shares the same contact normal.
-        for manifold in contacts.manifolds.iter() {
-            let normal = if is_first {
-                -manifold.global_normal1(rotation)
-            } else {
-                -manifold.global_normal2(rotation)
-            };
-
-            // Solve each penetrating contact in the manifold
-            for contact in manifold.contacts.iter().filter(|c| c.penetration > 0.0) {
-                let length = (normal * contact.penetration).length();
-                distance.0 = (distance.0 - (length + 0.3)).clamp(2., 15.);
+    for (transform, hits) in &player {
+        if let Ok((mut camera, distance, leashed_camera)) = camera.get_single_mut() {
+            let mut dist = 1.0;
+            if let Some(hits) = hits {
+                for hit in hits.iter_sorted() {
+                    dist = hit.time_of_impact.clamp(0.0, 1.0);
+                    break;
+                }
             }
+
+            let rot =
+                Quat::from_euler(EulerRot::YXZ, leashed_camera.yaw, -leashed_camera.pitch, 0.);
+            camera.translation = transform.translation + rot * vec3(0., 0., -(distance.0 * dist));
+            camera.look_at(transform.translation, Vec3::Y);
         }
     }
 }
