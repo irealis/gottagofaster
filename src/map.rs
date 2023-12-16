@@ -10,7 +10,13 @@ pub struct Map {
     pub start_pos: Vec3,
     pub end_pos: Vec3,
     pub end_rotation: f32,
-    pub checkpoints: Vec<Vec3>,
+    pub checkpoints: Vec<Checkpoint>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Checkpoint {
+    pub pos: Vec3,
+    pub rot: f32,
 }
 
 impl From<&str> for Map {

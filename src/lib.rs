@@ -44,7 +44,7 @@ use crate::{
     ghost::GhostPlugin,
     input::reset_pos,
     ui::{setup_ui, ui_finish, ui_mainscreen},
-    vfx::{center_sky, emit_ground_effect, VfxPlugin},
+    vfx::VfxPlugin,
 };
 
 #[derive(Component)]
@@ -92,7 +92,7 @@ pub fn bevy_main() {
                     ..Default::default()
                 })
                 .set(AssetPlugin {
-                    mode: AssetMode::Processed,
+                    mode: AssetMode::Unprocessed,
                     ..Default::default()
                 }),
             TemporalAntiAliasPlugin,
@@ -131,7 +131,7 @@ pub fn bevy_main() {
     dbg!(&app.is_plugin_added::<EguiPlugin>());
 
     #[cfg(debug_assertions)]
-    //app.add_plugins(PhysicsDebugPlugin::default());
+    app.add_plugins(PhysicsDebugPlugin::default());
     //.add_plugins(WorldInspectorPlugin::default());
     app.run();
 }
@@ -201,7 +201,7 @@ pub fn load_map(
     let map_data = assetserver.load(format!("{}#Scene0", map.file));
     commands.spawn((
         Name::new("Platform"),
-        AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
+        AsyncSceneCollider::new(Some(ComputedCollider::ConvexHull)),
         RigidBody::Static,
         SceneBundle {
             transform: Transform::from_translation(vec3(0., -3., 0.)),
@@ -244,13 +244,14 @@ pub fn load_map(
         commands.spawn((
             SceneBundle {
                 scene: asset_handles.tori.clone_weak(),
-                transform: Transform::from_translation(*checkpoint).with_scale(Vec3::splat(3.)),
+                transform: Transform::from_translation(checkpoint.pos)
+                    .with_scale(Vec3::splat(2.))
+                    .with_rotation(Quat::from_rotation_y(checkpoint.rot.to_radians())),
                 ..Default::default()
             },
             Sensor,
             CollisionLayers::new([PhysicsLayers::Sensor], [PhysicsLayers::Sensor]),
             Collider::cuboid(10., 20., 3.),
-            //AsyncSceneCollider::new(Some(ComputedCollider::ConvexHull)),
             RigidBody::Static,
             Checkpoint { reached: false },
             MapEntityMarker,
