@@ -1,5 +1,6 @@
 {
     "name": "urban",
+    "collidertype": 1,
     "file": "urban.glb",
     "start_pos": [0.0,10.0,0.0],
     "end_pos": [516.0,60.0,215.0],
