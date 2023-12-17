@@ -127,6 +127,7 @@ fn leash_camera(
 
 fn raycast_camera(
     player: Query<(&Transform, Option<&RayHits>), (With<RayCaster>, With<Player>)>,
+    has_sensor: Query<Has<Sensor>>,
     mut camera: Query<(&mut Transform, &CameraDistance, &LeashedCamera), Without<Player>>,
 ) {
     for (transform, hits) in &player {
@@ -134,6 +135,9 @@ fn raycast_camera(
             let mut dist = 1.0;
             if let Some(hits) = hits {
                 for hit in hits.iter_sorted() {
+                    if has_sensor.get(hit.entity).unwrap_or(false) {
+                        continue;
+                    }
                     dist = hit.time_of_impact.clamp(0.0, 1.0);
                     break;
                 }
