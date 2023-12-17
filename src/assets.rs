@@ -4,6 +4,7 @@ use bevy::prelude::*;
 pub struct AssetHandles {
     pub tori: Handle<Scene>,
     pub fox: Handle<Scene>,
+    pub pad: Handle<Scene>,
 }
 
 #[derive(Resource)]
@@ -13,7 +14,8 @@ impl AssetHandles {
     pub fn load(aserv: &AssetServer) -> Self {
         let tori = aserv.load("tori.glb#Scene0");
         let fox = aserv.load("Fox.gltf#Scene0");
+        let pad = aserv.load("pad.glb#Scene0");
 
-        Self { tori, fox }
+        Self { tori, fox, pad }
     }
 }

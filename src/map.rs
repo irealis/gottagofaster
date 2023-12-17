@@ -11,12 +11,19 @@ pub struct Map {
     pub end_pos: Vec3,
     pub end_rotation: f32,
     pub checkpoints: Vec<Checkpoint>,
+    pub pads: Option<Vec<Jumppad>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Checkpoint {
     pub pos: Vec3,
     pub rot: f32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Jumppad {
+    pub pos: Vec3,
+    pub strength: f32,
 }
 
 impl From<&str> for Map {
