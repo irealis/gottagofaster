@@ -31,20 +31,32 @@ impl MapDuration {
     }
 }
 
-#[derive(Resource)]
+#[derive(Component)]
 pub struct Countdown(pub Timer);
 
-pub fn tick(time: Res<Time>, mut match_time: ResMut<Countdown>) {
-    match_time.0.tick(time.delta());
+pub fn tick(time: Res<Time>, mut countdown: Query<&mut Countdown>) {
+    for mut cd in &mut countdown {
+        cd.0.tick(time.delta());
+    }
+}
+
+pub fn display_countdown(mut commands: Commands, mut text: Query<(Entity, &Countdown, &mut Text)>) {
+    for (e, countdown, mut text) in &mut text {
+        if countdown.0.finished() {
+            commands.get_entity(e).unwrap().despawn_recursive();
+        } else {
+            text.sections[0].value = (3. - countdown.0.elapsed().as_secs_f32()).to_string();
+        }
+    }
 }
 
 pub fn countdown_timer(
     mut commands: Commands,
-    countdown: Option<Res<Countdown>>,
+    countdown: Query<&Countdown>,
     player: Query<Entity, With<Player>>,
 ) {
-    if let Some(countdown) = countdown {
-        if countdown.0.just_finished() {
+    for cd in &countdown {
+        if cd.0.just_finished() {
             if let Ok(player) = player.get_single() {
                 commands
                     .get_entity(player)

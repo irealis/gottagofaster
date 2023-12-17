@@ -57,7 +57,7 @@ use crate::{
     ghost::GhostPlugin,
     input::reset_pos,
     jumppad::apply_jumppad_boost,
-    timing::{countdown_timer, tick},
+    timing::{countdown_timer, display_countdown, tick},
     ui::{setup_ui, ui_finish, ui_mainscreen},
     vfx::VfxPlugin,
 };
@@ -138,6 +138,7 @@ pub fn bevy_main() {
                 apply_jumppad_boost,
                 countdown_timer,
                 tick,
+                display_countdown,
             )
                 .run_if(in_state(State::Playing)),
         )
@@ -298,10 +299,28 @@ pub fn load_map(
         }
     }
 
-    commands.insert_resource(Countdown(Timer::new(
-        Duration::from_secs(3),
-        TimerMode::Once,
-    )));
+    // commands.insert_resource(Countdown(Timer::new(
+    //     Duration::from_secs(3),
+    //     TimerMode::Once,
+    // )));
+    let text_style = TextStyle {
+        font_size: 60.,
+        ..Default::default()
+    };
+    commands.spawn((
+        TextBundle::from_section("", text_style)
+            .with_text_alignment(TextAlignment::Center)
+            .with_style(Style {
+                margin: UiRect {
+                    left: Val::Percent(40.),
+                    right: Val::Percent(40.),
+                    top: Val::Percent(40.),
+                    bottom: Val::Percent(40.),
+                },
+                ..Default::default()
+            }),
+        Countdown(Timer::new(Duration::from_secs(3), TimerMode::Once)),
+    ));
 }
 
 pub fn update_animation(
