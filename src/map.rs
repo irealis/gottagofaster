@@ -1,6 +1,7 @@
 use std::{fs::File, io::Read, path::Path};
 
 use bevy::prelude::{Resource, Vec3};
+use bevy_xpbd_3d::prelude::{ComputedCollider, VHACDParameters};
 use serde::{Deserialize, Serialize};
 
 #[derive(Resource, Debug, Serialize, Deserialize)]
@@ -12,6 +13,7 @@ pub struct Map {
     pub end_rotation: f32,
     pub checkpoints: Vec<Checkpoint>,
     pub pads: Option<Vec<Jumppad>>,
+    collidertype: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -43,6 +45,15 @@ impl Map {
         let mut contents = String::new();
         file.read_to_string(&mut contents).unwrap();
         serde_json::from_str::<Map>(&contents).unwrap()
+    }
+
+    pub fn collider_type(&self) -> ComputedCollider {
+        match self.collidertype {
+            Some(0) => ComputedCollider::ConvexDecomposition(VHACDParameters::default()),
+            Some(1) => ComputedCollider::ConvexHull,
+            Some(2) => ComputedCollider::TriMesh,
+            _ => ComputedCollider::ConvexDecomposition(VHACDParameters::default()),
+        }
     }
 }
 

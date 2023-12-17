@@ -147,10 +147,8 @@ pub fn bevy_main() {
             (close_on_esc, ui_finish).run_if(in_state(State::Finished)),
         );
 
-    dbg!(&app.is_plugin_added::<EguiPlugin>());
-
-    #[cfg(debug_assertions)]
-    app.add_plugins(PhysicsDebugPlugin::default());
+    // #[cfg(debug_assertions)]
+    // app.add_plugins(PhysicsDebugPlugin::default());
 
     //.add_plugins(WorldInspectorPlugin::default());
     app.run();
@@ -225,7 +223,7 @@ pub fn load_map(
     let map_data = assetserver.load(format!("{}#Scene0", map.file));
     commands.spawn((
         Name::new("Platform"),
-        AsyncSceneCollider::new(Some(ComputedCollider::ConvexHull)),
+        AsyncSceneCollider::new(Some(map.collider_type())),
         RigidBody::Static,
         SceneBundle {
             transform: Transform::from_translation(vec3(0., -3., 0.)),
