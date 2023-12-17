@@ -5,6 +5,7 @@ mod checkpoint;
 mod debug;
 mod ghost;
 mod input;
+mod jumppad;
 mod map;
 mod physics;
 mod ui;
@@ -14,10 +15,17 @@ use std::time::Duration;
 
 use assets::Animations;
 use bevy::{
-    core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin},
+    core_pipeline::{
+        bloom::BloomSettings,
+        experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin},
+        tonemapping::Tonemapping,
+    },
     ecs::system::SystemId,
     math::vec3,
-    pbr::{CascadeShadowConfigBuilder, NotShadowCaster},
+    pbr::{
+        CascadeShadowConfigBuilder, DirectionalLightShadowMap, NotShadowCaster,
+        ShadowFilteringMethod,
+    },
     prelude::*,
     window::{close_on_esc, PresentMode},
 };
@@ -33,6 +41,7 @@ use character_controller::{CharacterControllerBundle, CharacterControllerPlugin}
 use checkpoint::{Checkpoint, Goal};
 use ghost::GhostData;
 use input::Resetable;
+use jumppad::Jumppad;
 use map::{all_maps, Map};
 use physics::PhysicsLayers;
 use vfx::{create_ground_effect, create_portal};
@@ -43,6 +52,7 @@ use crate::{
     debug::debug_things,
     ghost::GhostPlugin,
     input::reset_pos,
+    jumppad::apply_jumppad_boost,
     ui::{setup_ui, ui_finish, ui_mainscreen},
     vfx::VfxPlugin,
 };
@@ -101,7 +111,7 @@ pub fn bevy_main() {
             HanabiPlugin,
             GhostPlugin,
             EguiPlugin,
-            FramepacePlugin,
+            //FramepacePlugin,
             CheckpointPlugin,
             VfxPlugin,
             //EditorPlugin::default(),
@@ -120,6 +130,7 @@ pub fn bevy_main() {
                 setup_scene_once_loaded,
                 update_animation,
                 rotate_player_model,
+                apply_jumppad_boost,
             )
                 .run_if(in_state(State::Playing)),
         )
@@ -131,12 +142,12 @@ pub fn bevy_main() {
     dbg!(&app.is_plugin_added::<EguiPlugin>());
 
     #[cfg(debug_assertions)]
-    app.add_plugins(PhysicsDebugPlugin::default())
-        .insert_resource(PhysicsDebugConfig {
-            raycast_color: Some(Color::WHITE),
-            raycast_point_color: Some(Color::PINK),
-            ..Default::default()
-        });
+    // app.add_plugins(PhysicsDebugPlugin::default())
+    //     .insert_resource(PhysicsDebugConfig {
+    //         raycast_color: Some(Color::WHITE),
+    //         raycast_point_color: Some(Color::PINK),
+    //         ..Default::default()
+    //     });
 
     //.add_plugins(WorldInspectorPlugin::default());
     app.run();
@@ -190,8 +201,11 @@ pub fn load_map(
                 hdr: true,
                 ..Default::default()
             },
+            tonemapping: Tonemapping::TonyMcMapface,
             ..Default::default()
         },
+        ShadowFilteringMethod::Jimenez14,
+        BloomSettings::default(),
         FogSettings {
             color: Color::rgba(0.35, 0.48, 0.66, 1.0),
             directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),
@@ -263,6 +277,23 @@ pub fn load_map(
             Checkpoint { reached: false },
             MapEntityMarker,
         ));
+    }
+
+    if let Some(pads) = &map.pads {
+        for pad in pads {
+            commands.spawn((
+                SceneBundle {
+                    scene: asset_handles.pad.clone_weak(),
+                    transform: Transform::from_translation(pad.pos),
+                    ..Default::default()
+                },
+                Collider::cylinder(0.6, 4.8),
+                Sensor,
+                RigidBody::Static,
+                MapEntityMarker,
+                Jumppad(pad.strength),
+            ));
+        }
     }
 }
 
@@ -340,7 +371,7 @@ pub fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut pace: ResMut<FramepaceSettings>,
+    //mut pace: ResMut<FramepaceSettings>,
     aserv: Res<AssetServer>,
 ) {
     let maps = all_maps();
@@ -351,11 +382,13 @@ pub fn setup(
     //pace.limiter = Limiter::from_framerate(30.);
 
     let cascade_shadow_config = CascadeShadowConfigBuilder {
-        first_cascade_far_bound: 30.,
-        maximum_distance: 300.0,
+        first_cascade_far_bound: 100.,
+        maximum_distance: 600.0,
         ..default()
     }
     .build();
+
+    commands.insert_resource(DirectionalLightShadowMap { size: 2048 });
 
     // Sun
     commands.spawn(DirectionalLightBundle {
