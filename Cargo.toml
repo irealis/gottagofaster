@@ -18,7 +18,10 @@ opt-level = 3
 codegen-units = 1 # Slower compile but faster at runtime
 
 [dependencies]
-bevy = { version = "0.12.1", features = ["dynamic_linking", "serialize", "jpeg", "trace", "trace_tracy"] }
+bevy = { version = "0.12.1", features = ["serialize", "jpeg"] }
+
+# Note: Tracy is very useful for debuggin perf things, but its memory usage grows extremely quickly.
+#bevy = { version = "0.12.1", features = ["serialize", "jpeg", "trace", "trace_tracy"] }
 bevy-inspector-egui = "0.21.0"
 bevy_editor_pls = "0.6.0"
 bevy_egui = "0.23.0"
