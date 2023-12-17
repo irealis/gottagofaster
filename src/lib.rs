@@ -354,7 +354,7 @@ fn setup_scene_once_loaded(
 
 pub fn unload(mut commands: Commands, query: Query<Entity, With<MapEntityMarker>>) {
     for e in &query {
-        commands.entity(e).despawn();
+        commands.entity(e).despawn_recursive();
     }
 }
 
