@@ -37,7 +37,9 @@ use bevy_xpbd_3d::{
     prelude::*,
 };
 use camera::{CameraLeash, LeashedCamera, LeashedCameraBundle, LeashedCameraPlugin};
-use character_controller::{CharacterControllerBundle, CharacterControllerPlugin};
+use character_controller::{
+    CharacterControllerBundle, CharacterControllerPlugin, Grounded, JumpCount, Sliding,
+};
 use checkpoint::{Checkpoint, Goal};
 use ghost::GhostData;
 use input::Resetable;
@@ -298,21 +300,41 @@ pub fn load_map(
 }
 
 pub fn update_animation(
-    mut query: Query<(Entity, &LinearVelocity)>,
+    mut query: Query<(
+        Entity,
+        &LinearVelocity,
+        Has<Grounded>,
+        Has<Sliding>,
+        &JumpCount,
+    )>,
     mut animation_player: Query<&mut AnimationPlayer>,
     animations: Res<Animations>,
     children: Query<&Children>,
+    mut jc: Local<i32>,
 ) {
-    for (e, linear_velocity) in &mut query {
+    for (e, linear_velocity, is_grounded, is_sliding, jump_count) in &mut query {
         for entity in children.iter_descendants(e) {
             if let Ok(mut animation_player) = animation_player.get_mut(entity) {
-                if linear_velocity.0.length() > 2. {
+                if linear_velocity.0.length() > 2. && (is_sliding || is_grounded) {
                     animation_player
                         .play_with_transition(
                             animations.0[1].clone_weak(),
                             Duration::from_millis(100),
                         )
                         .repeat();
+                    *jc = -1;
+                } else if !is_grounded && !is_sliding {
+                    if *jc != jump_count.0 as i32 {
+                        if animation_player.is_playing_clip(&animations.0[2]) {
+                            animation_player.replay();
+                        } else {
+                            animation_player.play_with_transition(
+                                animations.0[2].clone_weak(),
+                                Duration::from_millis(50),
+                            );
+                        }
+                        *jc = jump_count.0 as i32;
+                    }
                 } else {
                     animation_player
                         .play_with_transition(
@@ -320,6 +342,7 @@ pub fn update_animation(
                             Duration::from_millis(100),
                         )
                         .repeat();
+                    *jc = -1;
                 }
             }
         }
