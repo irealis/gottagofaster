@@ -46,6 +46,7 @@ pub fn display_countdown(mut commands: Commands, mut text: Query<(Entity, &Count
             commands.get_entity(e).unwrap().despawn_recursive();
         } else {
             text.sections[0].value = (3. - countdown.0.elapsed().as_secs_f32()).to_string();
+            text.sections[0].value.truncate(4);
         }
     }
 }

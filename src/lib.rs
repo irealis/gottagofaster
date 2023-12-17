@@ -307,20 +307,38 @@ pub fn load_map(
         font_size: 60.,
         ..Default::default()
     };
-    commands.spawn((
-        TextBundle::from_section("", text_style)
-            .with_text_alignment(TextAlignment::Center)
-            .with_style(Style {
-                margin: UiRect {
-                    left: Val::Percent(40.),
-                    right: Val::Percent(40.),
-                    top: Val::Percent(40.),
-                    bottom: Val::Percent(40.),
-                },
+    commands
+        .spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                width: Val::Percent(100.),
                 ..Default::default()
-            }),
-        Countdown(Timer::new(Duration::from_secs(3), TimerMode::Once)),
-    ));
+            },
+            ..Default::default()
+        })
+        .with_children(|commands| {
+            commands
+                .spawn(NodeBundle {
+                    style: Style {
+                        flex_direction: FlexDirection::Row,
+                        justify_content: JustifyContent::Center,
+                        margin: UiRect {
+                            top: Val::Percent(40.),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+                .with_children(|commands| {
+                    commands.spawn((
+                        TextBundle::from_section("", text_style)
+                            .with_text_alignment(TextAlignment::Center)
+                            .with_background_color(Color::RED),
+                        Countdown(Timer::new(Duration::from_secs(3), TimerMode::Once)),
+                    ));
+                });
+        });
 }
 
 pub fn update_animation(
