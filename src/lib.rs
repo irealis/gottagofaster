@@ -8,6 +8,7 @@ mod input;
 mod jumppad;
 mod map;
 mod physics;
+mod timing;
 mod ui;
 mod vfx;
 
@@ -46,6 +47,7 @@ use input::Resetable;
 use jumppad::Jumppad;
 use map::{all_maps, Map};
 use physics::PhysicsLayers;
+use timing::Countdown;
 use vfx::{create_ground_effect, create_portal};
 
 use crate::{
@@ -55,6 +57,7 @@ use crate::{
     ghost::GhostPlugin,
     input::reset_pos,
     jumppad::apply_jumppad_boost,
+    timing::{countdown_timer, tick},
     ui::{setup_ui, ui_finish, ui_mainscreen},
     vfx::VfxPlugin,
 };
@@ -133,6 +136,8 @@ pub fn bevy_main() {
                 update_animation,
                 rotate_player_model,
                 apply_jumppad_boost,
+                countdown_timer,
+                tick,
             )
                 .run_if(in_state(State::Playing)),
         )
@@ -144,12 +149,7 @@ pub fn bevy_main() {
     dbg!(&app.is_plugin_added::<EguiPlugin>());
 
     #[cfg(debug_assertions)]
-    // app.add_plugins(PhysicsDebugPlugin::default())
-    //     .insert_resource(PhysicsDebugConfig {
-    //         raycast_color: Some(Color::WHITE),
-    //         raycast_point_color: Some(Color::PINK),
-    //         ..Default::default()
-    //     });
+    app.add_plugins(PhysicsDebugPlugin::default());
 
     //.add_plugins(WorldInspectorPlugin::default());
     app.run();
@@ -297,6 +297,11 @@ pub fn load_map(
             ));
         }
     }
+
+    commands.insert_resource(Countdown(Timer::new(
+        Duration::from_secs(3),
+        TimerMode::Once,
+    )));
 }
 
 pub fn update_animation(

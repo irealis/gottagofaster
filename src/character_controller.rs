@@ -1,7 +1,7 @@
 use bevy::{ecs::query::Has, prelude::*};
 use bevy_xpbd_3d::{math::*, prelude::*, SubstepSchedule, SubstepSet};
 
-use crate::{camera::LeashedCamera, physics::PhysicsLayers};
+use crate::{camera::LeashedCamera, physics::PhysicsLayers, timing::MapDuration};
 
 pub struct CharacterControllerPlugin;
 
@@ -243,15 +243,18 @@ fn update_grounded(
 fn movement(
     time: Res<Time>,
     mut movement_event_reader: EventReader<MovementAction>,
-    mut controllers: Query<(
-        &MovementAcceleration,
-        &JumpImpulse,
-        &mut LinearVelocity,
-        &mut JumpCount,
-        &mut AccelerationMultiplier,
-        Has<Grounded>,
-        Has<Sliding>,
-    )>,
+    mut controllers: Query<
+        (
+            &MovementAcceleration,
+            &JumpImpulse,
+            &mut LinearVelocity,
+            &mut JumpCount,
+            &mut AccelerationMultiplier,
+            Has<Grounded>,
+            Has<Sliding>,
+        ),
+        With<MapDuration>,
+    >,
     cameras: Query<&Transform, With<LeashedCamera>>,
 ) {
     let delta_time = time.delta_seconds();
@@ -315,9 +318,9 @@ fn apply_movement_damping(
 ) {
     let dt = time.delta_seconds();
     for (damping_factor, mut linear_velocity, is_sliding) in &mut query {
-        if is_sliding {
-            continue;
-        }
+        // if is_sliding {
+        //     continue;
+        // }
 
         // We could use `LinearDamping`, but we don't want to dampen movement along the Y axis
         let factor = (1. - damping_factor.0).powf(dt);

@@ -1,7 +1,7 @@
 use bevy::{prelude::*, window::CursorGrabMode};
 use bevy_xpbd_3d::prelude::{contact_query::intersection_test, Collider, CollidingEntities};
 
-use crate::{ghost::GhostOneshots, Player, State};
+use crate::{ghost::GhostOneshots, timing::MapDuration, Player, State};
 
 pub struct CheckpointPlugin;
 
@@ -56,11 +56,19 @@ fn on_goal(
     mut commands: Commands,
     oneshots: Res<GhostOneshots>,
     goals: Query<(&Collider, &Transform), With<Goal>>,
-    player: Query<(&Collider, &Transform, Has<AllCheckpointsReached>), With<Player>>,
+    mut player: Query<
+        (
+            &Collider,
+            &Transform,
+            Has<AllCheckpointsReached>,
+            Option<&mut MapDuration>,
+        ),
+        With<Player>,
+    >,
     mut state: ResMut<NextState<State>>,
     mut windows: Query<&mut Window>,
 ) {
-    let (pcollider, ptransform, all_checkpoints_reached) = player.single();
+    let (pcollider, ptransform, all_checkpoints_reached, mut mapduration) = player.single_mut();
 
     for (collider, transform) in &goals {
         match intersection_test(
@@ -74,7 +82,12 @@ fn on_goal(
             Ok(b) => {
                 if b && all_checkpoints_reached {
                     commands.run_system(oneshots.store);
+
                     state.set(State::Finished);
+
+                    if let Some(ref mut mapduration) = mapduration {
+                        mapduration.stop();
+                    }
 
                     let mut window = windows.single_mut();
                     window.cursor.grab_mode = CursorGrabMode::None;

@@ -4,7 +4,7 @@ use bevy_egui::{
     EguiContexts,
 };
 
-use crate::{ghost::GhostOneshots, map::Map, Maps, State, StateOneshots};
+use crate::{ghost::GhostOneshots, map::Map, timing::MapDuration, Maps, State, StateOneshots};
 
 pub fn setup_ui(mut contexts: EguiContexts) {
     let ctx = contexts.ctx_mut();
@@ -85,6 +85,7 @@ pub fn ui_finish(
     mut state: ResMut<NextState<State>>,
     mut commands: Commands,
     mut windows: Query<&mut Window>,
+    query: Query<&MapDuration>,
     oneshots: Res<StateOneshots>,
     ghost_oneshots: Res<GhostOneshots>,
 ) {
@@ -99,7 +100,11 @@ pub fn ui_finish(
         .show(ui, |ui| {
             ui.vertical_centered(|ui| {
                 ui.heading("Finish!");
-                ui.label(format!("Finished in {}", "TODO"));
+
+                let duration = query.single();
+
+                ui.label(format!("Finished in {}", duration.elapsed().as_secs_f32()));
+
                 ui.horizontal(|ui| {
                     if ui.button("Reset").clicked() {
                         commands.run_system(oneshots.unload);
