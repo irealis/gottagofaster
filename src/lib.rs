@@ -213,7 +213,7 @@ pub fn load_map(
             directional_light_exponent: 50.0,
             falloff: FogFalloff::Linear {
                 start: 5.,
-                end: 600.,
+                end: 400.,
             },
         },
         TemporalAntiAliasBundle::default(),
