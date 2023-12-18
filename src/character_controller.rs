@@ -15,14 +15,12 @@ impl Plugin for CharacterControllerPlugin {
                     .run_if(in_state(crate::State::Playing)),
             )
             .add_systems(
+                FixedUpdate,
+                (apply_movement_damping, decay_multiplier).run_if(in_state(crate::State::Playing)),
+            )
+            .add_systems(
                 Update,
-                (
-                    update_grounded,
-                    apply_deferred,
-                    apply_gravity,
-                    apply_movement_damping,
-                    decay_multiplier,
-                )
+                (update_grounded, apply_deferred, apply_gravity)
                     .chain()
                     .run_if(
                         in_state(crate::State::Playing).or_else(in_state(crate::State::Finished)),
@@ -281,7 +279,7 @@ fn movement(
                 }
                 MovementAction::Jump => {
                     if is_grounded || is_sliding {
-                        acc_mul.0 += 1.;
+                        acc_mul.0 += 1.1;
                         let forward = camera_transform.rotation.inverse().mul_vec3(Vec3::Z);
                         linear_velocity.x +=
                             forward.x * movement_acceleration.0 * acc_mul.0 * delta_time;
@@ -323,25 +321,17 @@ fn apply_movement_damping(
         // }
 
         // We could use `LinearDamping`, but we don't want to dampen movement along the Y axis
-        let factor = (1. - damping_factor.0).powf(dt);
+        let factor = damping_factor.0;
         linear_velocity.x *= factor;
         linear_velocity.z *= factor;
     }
 }
 
 /// Slowly decay the acceleration multiplier over time
-fn decay_multiplier(
-    time: Res<Time>,
-    mut query: Query<(&mut AccelerationMultiplier, Has<Grounded>, Has<Sliding>)>,
-) {
+fn decay_multiplier(mut query: Query<(&mut AccelerationMultiplier, Has<Grounded>, Has<Sliding>)>) {
     for (mut acc, is_grounded, is_sliding) in &mut query {
-        if is_sliding {
-            continue;
-        }
-
-        let decay_factor: f32 = if is_grounded { 0.2 } else { 0.98 };
-        let dt = time.delta_seconds();
-        acc.0 = (acc.0 * decay_factor.powf(dt)).clamp(1.0, 10.);
+        let decay_factor: f32 = if is_grounded { 0.97 } else { 0.999 };
+        acc.0 = (acc.0 * decay_factor).clamp(1.0, 10.);
     }
 }
 

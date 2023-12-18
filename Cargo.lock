@@ -399,7 +399,6 @@ version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4bc7e09282a82a48d70ade0c4c1154b0fd7882a735a39c66766a5d0f4718ea9"
 dependencies = [
- "bevy_dylib",
  "bevy_internal 0.12.1",
 ]
 
@@ -731,15 +730,6 @@ dependencies = [
  "bevy_time 0.12.1",
  "bevy_utils 0.12.1",
  "sysinfo",
-]
-
-[[package]]
-name = "bevy_dylib"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45b99001eb4837c78d9c63cc8b32fda61ea96b194a2cda54b569aeee69a9853c"
-dependencies = [
- "bevy_internal 0.12.1",
 ]
 
 [[package]]
@@ -1219,10 +1209,8 @@ dependencies = [
  "bevy_ecs 0.12.1",
  "bevy_utils 0.12.1",
  "console_error_panic_hook",
- "tracing-error",
  "tracing-log",
  "tracing-subscriber",
- "tracing-tracy",
  "tracing-wasm",
 ]
 
@@ -1776,7 +1764,6 @@ dependencies = [
  "ktx2",
  "naga 0.13.0",
  "naga_oil 0.10.0",
- "profiling",
  "ruzstd",
  "serde",
  "smallvec",
@@ -3015,19 +3002,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "generator"
-version = "0.7.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cc16584ff22b460a382b7feec54b23d2908d858152e5739a120b949293bd74e"
-dependencies = [
- "cc",
- "libc",
- "log",
- "rustversion",
- "windows 0.48.0",
-]
-
-[[package]]
 name = "gethostname"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3619,19 +3593,6 @@ name = "log"
 version = "0.4.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
-
-[[package]]
-name = "loom"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff50ecb28bb86013e935fb6683ab1f6d3a20016f123c76fd4c27470076ac30f5"
-dependencies = [
- "cfg-if",
- "generator",
- "scoped-tls",
- "tracing",
- "tracing-subscriber",
-]
 
 [[package]]
 name = "mach2"
@@ -4409,20 +4370,6 @@ name = "profiling"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f89dff0959d98c9758c88826cc002e2c3d0b9dfac4139711d1f30de442f1139b"
-dependencies = [
- "profiling-procmacros",
- "tracing",
-]
-
-[[package]]
-name = "profiling-procmacros"
-version = "1.0.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb156a45b6b9fe8027497422179fb65afc84d36707a7ca98297bf06bccb8d43f"
-dependencies = [
- "quote",
- "syn 2.0.38",
-]
 
 [[package]]
 name = "quote"
@@ -4646,12 +4593,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustversion"
-version = "1.0.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ffc183a10b4478d04cbbbfc96d0873219d962dd5accaff2ffbd4ceb7df837f4"
-
-[[package]]
 name = "ruzstd"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4685,12 +4626,6 @@ checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
 dependencies = [
  "winapi-util",
 ]
-
-[[package]]
-name = "scoped-tls"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1cf6437eb19a8f4a6cc0f7dca544973b0b78843adbfeb3683d1a94a0024a294"
 
 [[package]]
 name = "scopeguard"
@@ -5048,16 +4983,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tracing-error"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d686ec1c0f384b1277f097b2f279a2ecc11afe8c133c1aabf036a27cb4cd206e"
-dependencies = [
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "tracing-log"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5087,17 +5012,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tracing-tracy"
-version = "0.10.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc6c7bf057d67aa107e076129a4f331aaac47ec379952d9f0775c6b1d838ee97"
-dependencies = [
- "tracing-core",
- "tracing-subscriber",
- "tracy-client",
-]
-
-[[package]]
 name = "tracing-wasm"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5106,26 +5020,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "tracy-client"
-version = "0.16.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82da0d50d9df1106619b1e5b118f39de779f7d8b9c3504485b291cb16fabd20f"
-dependencies = [
- "loom",
- "once_cell",
- "tracy-client-sys",
-]
-
-[[package]]
-name = "tracy-client-sys"
-version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3db0b1cc1bb12a70457300d9affc07acb587390d971a796dac2f4d9bca8df776"
-dependencies = [
- "cc",
 ]
 
 [[package]]
