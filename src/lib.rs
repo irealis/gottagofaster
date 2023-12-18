@@ -91,9 +91,9 @@ pub struct StateOneshots {
 pub fn bevy_main() {
     let mut app = App::new();
 
-    #[cfg(not(target_os = "darwin"))]
+    #[cfg(not(target_os = "macos"))]
     let present_mode = PresentMode::Mailbox;
-    #[cfg(target_os = "darwin")]
+    #[cfg(target_os = "macos")]
     let present_mode = PresentMode::Fifo;
 
     app.add_state::<State>()
