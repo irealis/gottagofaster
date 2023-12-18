@@ -31,7 +31,7 @@ use bevy::{
     window::{close_on_esc, PresentMode},
 };
 use bevy_egui::EguiPlugin;
-use bevy_framepace::{FramepacePlugin, FramepaceSettings};
+use bevy_framepace::{FramepacePlugin, FramepaceSettings, Limiter};
 use bevy_hanabi::prelude::*;
 use bevy_xpbd_3d::{
     math::{Scalar, Vector},
@@ -148,7 +148,7 @@ pub fn bevy_main() {
         );
 
     // #[cfg(debug_assertions)]
-    // app.add_plugins(PhysicsDebugPlugin::default());
+    app.add_plugins(PhysicsDebugPlugin::default());
 
     //.add_plugins(WorldInspectorPlugin::default());
     app.run();
@@ -185,7 +185,7 @@ pub fn load_map(
             )]),
             Vector::NEG_Y * 9.81 * 2.0,
         )
-        .with_movement(65.0, 0.98, 10.0, (15.0 as Scalar).to_radians()),
+        .with_movement(30.0, 0.98, 10.0, (15.0 as Scalar).to_radians()),
         GhostData::default(),
         Player,
         MapEntityMarker,
@@ -220,16 +220,31 @@ pub fn load_map(
         MapEntityMarker,
     ));
 
-    let map_data = assetserver.load(format!("{}#Scene0", map.file));
+    let map_data = assetserver.load(format!("{}.glb#Scene0", map.file));
     commands.spawn((
-        Name::new("Platform"),
-        AsyncSceneCollider::new(Some(map.collider_type())),
-        RigidBody::Static,
+        Name::new("Map"),
+        // AsyncSceneCollider::new(Some(map.collider_type())),
+        // RigidBody::Static,
         SceneBundle {
             transform: Transform::from_translation(vec3(0., -3., 0.)),
             scene: map_data,
             ..Default::default()
         },
+        MapEntityMarker,
+        CollisionLayers::new([PhysicsLayers::Ground], [PhysicsLayers::Player]),
+    ));
+
+    let map_collisions = assetserver.load(format!("{}_collisions.glb#Scene0", map.file));
+    commands.spawn((
+        Name::new("Map collisions"),
+        AsyncSceneCollider::new(Some(ComputedCollider::ConvexHull)),
+        SceneBundle {
+            transform: Transform::from_translation(vec3(0., -3., 0.)),
+            scene: map_collisions,
+            visibility: Visibility::Hidden,
+            ..Default::default()
+        },
+        RigidBody::Static,
         MapEntityMarker,
         CollisionLayers::new([PhysicsLayers::Ground], [PhysicsLayers::Player]),
     ));
@@ -443,6 +458,7 @@ pub fn setup(
     commands.insert_resource(AssetHandles::load(&aserv));
 
     //pace.limiter = Limiter::from_framerate(30.);
+    commands.insert_resource(Time::new_with(Physics::variable(1. / 30.)));
 
     let cascade_shadow_config = CascadeShadowConfigBuilder {
         first_cascade_far_bound: 100.,
@@ -481,4 +497,16 @@ pub fn setup(
         },
         NotShadowCaster,
     ));
+}
+
+fn to_main_menu(
+    mut commands: Commands,
+    oneshots: Res<StateOneshots>,
+    keyboard_input: Res<Input<KeyCode>>,
+    mut state: ResMut<NextState<crate::State>>,
+) {
+    if keyboard_input.just_pressed(KeyCode::Escape) {
+        state.set(crate::State::Mainscreen);
+        commands.run_system(oneshots.unload);
+    }
 }

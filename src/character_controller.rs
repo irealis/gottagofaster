@@ -5,26 +5,31 @@ use crate::{camera::LeashedCamera, physics::PhysicsLayers, timing::MapDuration};
 
 pub struct CharacterControllerPlugin;
 
+// TODO:
+// doublejump doesn't trigger when sliding off because jump count
+
 impl Plugin for CharacterControllerPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<MovementAction>()
             .add_systems(
                 Update,
-                (keyboard_input, movement)
+                (
+                    keyboard_input,
+                    update_grounded,
+                    apply_deferred,
+                    apply_gravity,
+                    movement,
+                    apply_movement_damping,
+                    decay_multiplier,
+                )
                     .chain()
                     .run_if(in_state(crate::State::Playing)),
-            )
-            .add_systems(
-                FixedUpdate,
-                (apply_movement_damping, decay_multiplier).run_if(in_state(crate::State::Playing)),
             )
             .add_systems(
                 Update,
                 (update_grounded, apply_deferred, apply_gravity)
                     .chain()
-                    .run_if(
-                        in_state(crate::State::Playing).or_else(in_state(crate::State::Finished)),
-                    ),
+                    .run_if(in_state(crate::State::Finished)),
             )
             .add_systems(
                 // Run collision handling in substep schedule
@@ -280,11 +285,12 @@ fn movement(
                 MovementAction::Jump => {
                     if is_grounded || is_sliding {
                         acc_mul.0 += 1.1;
-                        let forward = camera_transform.rotation.inverse().mul_vec3(Vec3::Z);
-                        linear_velocity.x +=
-                            forward.x * movement_acceleration.0 * acc_mul.0 * delta_time;
-                        linear_velocity.z -=
-                            forward.z * movement_acceleration.0 * acc_mul.0 * delta_time;
+                        dbg!(acc_mul.0);
+                        // let forward = camera_transform.rotation.inverse().mul_vec3(Vec3::Z);
+                        // linear_velocity.x +=
+                        //     forward.x * movement_acceleration.0 * acc_mul.0 * delta_time;
+                        // linear_velocity.z -=
+                        //     forward.z * movement_acceleration.0 * acc_mul.0 * delta_time;
                         jump_count.0 = 0;
                         linear_velocity.y = jump_impulse.0;
                     } else if jump_count.0 < 2 {
@@ -312,25 +318,27 @@ fn apply_gravity(
 /// Slows down movement in the XZ plane.
 fn apply_movement_damping(
     time: Res<Time>,
-    mut query: Query<(&MovementDampingFactor, &mut LinearVelocity, Has<Sliding>)>,
+    mut query: Query<(&MovementDampingFactor, &mut LinearVelocity)>,
 ) {
     let dt = time.delta_seconds();
-    for (damping_factor, mut linear_velocity, is_sliding) in &mut query {
-        // if is_sliding {
-        //     continue;
-        // }
-
+    for (damping_factor, mut linear_velocity) in &mut query {
         // We could use `LinearDamping`, but we don't want to dampen movement along the Y axis
         let factor = damping_factor.0;
-        linear_velocity.x *= factor;
-        linear_velocity.z *= factor;
+        // dbg!(&linear_velocity);
+        linear_velocity.x *= factor.powf(dt * 60.);
+        linear_velocity.z *= factor.powf(dt * 60.);
+        // dbg!(&linear_velocity);
     }
 }
 
 /// Slowly decay the acceleration multiplier over time
-fn decay_multiplier(mut query: Query<(&mut AccelerationMultiplier, Has<Grounded>, Has<Sliding>)>) {
-    for (mut acc, is_grounded, is_sliding) in &mut query {
-        let decay_factor: f32 = if is_grounded { 0.97 } else { 0.999 };
+fn decay_multiplier(
+    time: Res<Time>,
+    mut query: Query<(&mut AccelerationMultiplier, Has<Grounded>)>,
+) {
+    let dt = time.delta_seconds();
+    for (mut acc, is_grounded) in &mut query {
+        let decay_factor = (if is_grounded { 0.97 } else { 0.999 } as f32).powf(dt * 60.);
         acc.0 = (acc.0 * decay_factor).clamp(1.0, 10.);
     }
 }
