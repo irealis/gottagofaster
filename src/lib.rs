@@ -43,7 +43,7 @@ use character_controller::{
 };
 use checkpoint::{Checkpoint, Goal};
 use ghost::GhostData;
-use input::Resetable;
+use input::ResetSnapshot;
 use jumppad::Jumppad;
 use map::{all_maps, Map};
 use physics::PhysicsLayers;
@@ -55,7 +55,7 @@ use crate::{
     checkpoint::CheckpointPlugin,
     debug::debug_things,
     ghost::GhostPlugin,
-    input::reset_pos,
+    input::reset_to_checkpoint,
     jumppad::apply_jumppad_boost,
     timing::{countdown_timer, display_countdown, tick},
     ui::{setup_ui, ui_finish, ui_mainscreen},
@@ -73,6 +73,9 @@ pub struct Maps {
 /// Marker for entities that must be unloaded when switching or resetting map.
 #[derive(Component)]
 pub struct MapEntityMarker;
+
+#[derive(Component)]
+pub struct MapMarker;
 
 #[derive(States, Clone, Copy, Eq, PartialEq, Hash, Debug, Default)]
 pub enum State {
@@ -131,7 +134,7 @@ pub fn bevy_main() {
             Update,
             (
                 debug_things,
-                reset_pos,
+                reset_to_checkpoint,
                 setup_scene_once_loaded,
                 update_animation,
                 rotate_player_model,
@@ -195,7 +198,7 @@ pub fn load_map(
         GhostData::default(),
         Player,
         MapEntityMarker,
-        Resetable((map.start_pos, map.start_pos)),
+        ResetSnapshot::default(),
         RayCaster::new(Vec3::new(0., 1., 0.), Vec3::ZERO).with_max_hits(1),
     ));
 
@@ -237,24 +240,9 @@ pub fn load_map(
             ..Default::default()
         },
         MapEntityMarker,
+        MapMarker,
         CollisionLayers::new([PhysicsLayers::Ground], [PhysicsLayers::Player]),
     ));
-
-    // let map_collisions = assetserver.load(format!("{}_collisions.glb#Scene0", map.file));
-    // commands.spawn((
-    //     Name::new("Map collisions"),
-    //     AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
-    //     SceneBundle {
-    //         transform: Transform::from_translation(vec3(0., -3., 0.)),
-    //         scene: map_collisions,
-    //         visibility: Visibility::Hidden,
-    //         ..Default::default()
-    //     },
-    //     RigidBody::Static,
-    //     MapEntityMarker,
-    //     CollisionLayers::new([PhysicsLayers::Ground], [PhysicsLayers::Player]),
-    // ));
-    //
     let portal = effects.add(create_portal());
 
     commands.spawn((

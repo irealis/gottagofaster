@@ -45,8 +45,8 @@ pub struct CameraLeash;
 
 #[derive(Component, Reflect, Debug)]
 pub struct LeashedCamera {
-    pitch: f32,
-    yaw: f32,
+    pub pitch: f32,
+    pub yaw: f32,
 }
 
 impl Default for LeashedCamera {
@@ -101,27 +101,29 @@ fn leash_camera(
     mut cameras: Query<(&mut LeashedCamera, &IgnoreMouseInput, &CameraDistance), With<Camera3d>>,
     mut mouse_events: EventReader<MouseMotion>,
 ) {
-    let (mut raycaster, leash_transform) = player.single_mut();
+    if let Ok(player) = player.get_single_mut() {
+        let (mut raycaster, leash_transform) = player;
 
-    let mut leash_translation_offset = leash_transform.translation;
-    leash_translation_offset.y += 1.5;
+        let mut leash_translation_offset = leash_transform.translation;
+        leash_translation_offset.y += 1.5;
 
-    let mut mouse_delta = Vec2::ZERO;
-    for mouse_event in mouse_events.read() {
-        mouse_delta += mouse_event.delta;
-    }
-
-    for (mut camera, ignore_mouse, distance) in &mut cameras {
-        if ignore_mouse.0 {
-            continue;
+        let mut mouse_delta = Vec2::ZERO;
+        for mouse_event in mouse_events.read() {
+            mouse_delta += mouse_event.delta;
         }
 
-        let sensitivity = 0.1;
-        camera.pitch =
-            (camera.pitch - mouse_delta.y * RADIANS_PER_DOT * sensitivity).clamp(-PI / 2., PI / 2.);
-        camera.yaw -= mouse_delta.x * RADIANS_PER_DOT * sensitivity;
+        for (mut camera, ignore_mouse, distance) in &mut cameras {
+            if ignore_mouse.0 {
+                continue;
+            }
 
-        raycaster.direction = Quat::from_rotation_x(-camera.pitch) * vec3(0., 0., -distance.0);
+            let sensitivity = 0.1;
+            camera.pitch = (camera.pitch - mouse_delta.y * RADIANS_PER_DOT * sensitivity)
+                .clamp(-PI / 2., PI / 2.);
+            camera.yaw -= mouse_delta.x * RADIANS_PER_DOT * sensitivity;
+
+            raycaster.direction = Quat::from_rotation_x(-camera.pitch) * vec3(0., 0., -distance.0);
+        }
     }
 }
 

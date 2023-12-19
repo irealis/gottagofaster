@@ -1,7 +1,12 @@
 use bevy::{prelude::*, window::CursorGrabMode};
-use bevy_xpbd_3d::prelude::{contact_query::intersection_test, Collider, CollidingEntities};
+use bevy_xpbd_3d::prelude::{
+    contact_query::intersection_test, Collider, CollidingEntities, LinearVelocity,
+};
 
-use crate::{ghost::GhostOneshots, timing::MapDuration, Player, State};
+use crate::{
+    camera::LeashedCamera, character_controller::JumpCount, ghost::GhostOneshots,
+    input::ResetSnapshot, timing::MapDuration, Player, State,
+};
 
 pub struct CheckpointPlugin;
 
@@ -28,13 +33,23 @@ pub struct Goal;
 pub struct AllCheckpointsReached;
 
 pub fn check_checkpoint(
+    mut commands: Commands,
     mut query: Query<(&CollidingEntities, &mut Checkpoint)>,
-    player: Query<Entity, With<Player>>,
+    player: Query<(Entity, &Transform, &LinearVelocity, &JumpCount), With<Player>>,
+    camera: Query<&LeashedCamera>,
 ) {
-    if let Ok(player) = player.get_single() {
+    if let Ok((player, transform, vel, jc)) = player.get_single() {
         for (colliding, mut checkpoint) in &mut query {
             if colliding.contains(&player) {
                 checkpoint.reached = true;
+                let camera = camera.single();
+
+                commands.entity(player).insert(ResetSnapshot {
+                    pos: transform.translation,
+                    vel: vel.0,
+                    camera: (camera.yaw, camera.pitch),
+                    jump_count: jc.0,
+                });
             }
         }
     }
