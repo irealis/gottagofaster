@@ -1,10 +1,17 @@
+use std::time::Duration;
+
 use bevy::{app::AppExit, prelude::*, window::CursorGrabMode};
 use bevy_egui::{
     egui::{self, Color32, FontId, Frame, Margin, TextStyle, Visuals},
     EguiContexts,
 };
 
-use crate::{ghost::GhostOneshots, map::Map, timing::MapDuration, Maps, State, StateOneshots};
+use crate::{
+    ghost::GhostOneshots,
+    map::Map,
+    timing::{Countdown, MapDuration},
+    Maps, State, StateOneshots,
+};
 
 pub fn setup_ui(mut contexts: EguiContexts) {
     let ctx = contexts.ctx_mut();
@@ -124,4 +131,55 @@ pub fn ui_finish(
             })
         })
     });
+}
+
+pub fn to_main_menu(
+    mut commands: Commands,
+    oneshots: Res<StateOneshots>,
+    keyboard_input: Res<Input<KeyCode>>,
+    mut state: ResMut<NextState<crate::State>>,
+) {
+    if keyboard_input.just_pressed(KeyCode::Escape) {
+        state.set(crate::State::Mainscreen);
+        commands.run_system(oneshots.unload);
+    }
+}
+
+pub fn spawn_countdown_display(mut commands: Commands<'_, '_>) {
+    let text_style = bevy::text::TextStyle {
+        font_size: 60.,
+        ..Default::default()
+    };
+    commands
+        .spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                width: Val::Percent(100.),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .with_children(|commands| {
+            commands
+                .spawn(NodeBundle {
+                    style: Style {
+                        flex_direction: FlexDirection::Row,
+                        justify_content: JustifyContent::Center,
+                        margin: UiRect {
+                            top: Val::Percent(45.),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+                .with_children(|commands| {
+                    commands.spawn((
+                        TextBundle::from_section("", text_style)
+                            .with_text_alignment(TextAlignment::Center)
+                            .with_background_color(Color::RED),
+                        Countdown(Timer::new(Duration::from_secs(3), TimerMode::Once)),
+                    ));
+                });
+        });
 }

@@ -1,12 +1,19 @@
 use std::f32::consts::PI;
 
 use bevy::{
-    input::mouse::MouseMotion, math::vec3, prelude::*, transform::TransformSystem,
+    core_pipeline::{
+        bloom::BloomSettings, experimental::taa::TemporalAntiAliasBundle, tonemapping::Tonemapping,
+    },
+    input::mouse::MouseMotion,
+    math::vec3,
+    pbr::ShadowFilteringMethod,
+    prelude::*,
+    transform::TransformSystem,
     window::CursorGrabMode,
 };
 use bevy_xpbd_3d::{prelude::*, PhysicsSet};
 
-use crate::Player;
+use crate::{MapEntityMarker, Player};
 
 pub const RADIANS_PER_DOT: f32 = 1.0 / 180.0;
 
@@ -73,6 +80,35 @@ impl Plugin for LeashedCameraPlugin {
                 .run_if(in_state(crate::State::Playing)),
         );
     }
+}
+
+pub fn spawn_camera(commands: &mut Commands<'_, '_>) {
+    commands.spawn((
+        LeashedCameraBundle::default(),
+        Camera3dBundle {
+            transform: Transform::from_xyz(-1.0, 0.1, 1.0)
+                .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
+            camera: Camera {
+                hdr: true,
+                ..Default::default()
+            },
+            tonemapping: Tonemapping::TonyMcMapface,
+            ..default()
+        },
+        ShadowFilteringMethod::Jimenez14,
+        BloomSettings::default(),
+        FogSettings {
+            color: Color::rgba(0.35, 0.48, 0.66, 1.0),
+            directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),
+            directional_light_exponent: 50.0,
+            falloff: FogFalloff::Linear {
+                start: 5.,
+                end: 400.,
+            },
+        },
+        TemporalAntiAliasBundle::default(),
+        MapEntityMarker,
+    ));
 }
 
 fn toggle_camera_lock(

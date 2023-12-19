@@ -1,8 +1,12 @@
 use std::{fs::File, io::Read, path::Path};
 
-use bevy::prelude::{Resource, Vec3};
-use bevy_xpbd_3d::prelude::{ComputedCollider, VHACDParameters};
+use bevy::prelude::*;
+use bevy_xpbd_3d::prelude::{
+    AsyncSceneCollider, CollisionLayers, ComputedCollider, RigidBody, VHACDParameters,
+};
 use serde::{Deserialize, Serialize};
+
+use crate::{physics::PhysicsLayers, MapEntityMarker, MapMarker};
 
 #[derive(Resource, Debug, Serialize, Deserialize)]
 pub struct Map {
@@ -68,4 +72,25 @@ pub fn all_maps() -> Vec<String> {
     })
     .filter(|m: &String| !m.ends_with("replay"))
     .collect()
+}
+
+pub fn spawn_map(
+    assetserver: Res<'_, AssetServer>,
+    map: &Res<'_, Map>,
+    commands: &mut Commands<'_, '_>,
+) {
+    let map_data = assetserver.load(format!("{}.glb#Scene0", map.file));
+    commands.spawn((
+        Name::new("Map"),
+        AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
+        RigidBody::Static,
+        SceneBundle {
+            transform: Transform::from_translation(Vec3::new(0., -3., 0.)),
+            scene: map_data,
+            ..Default::default()
+        },
+        MapEntityMarker,
+        MapMarker,
+        CollisionLayers::new([PhysicsLayers::Ground], [PhysicsLayers::Player]),
+    ));
 }

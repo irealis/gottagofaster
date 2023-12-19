@@ -3,11 +3,14 @@ mod camera;
 mod character_controller;
 mod checkpoint;
 mod debug;
+mod environment;
 mod ghost;
 mod input;
 mod jumppad;
 mod map;
 mod physics;
+mod player;
+mod scene;
 mod timing;
 mod ui;
 mod vfx;
@@ -16,38 +19,27 @@ use std::time::Duration;
 
 use assets::Animations;
 use bevy::{
-    core_pipeline::{
-        bloom::BloomSettings,
-        experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin},
-        tonemapping::Tonemapping,
-    },
+    core_pipeline::experimental::taa::TemporalAntiAliasPlugin,
     ecs::system::SystemId,
     math::vec3,
-    pbr::{
-        CascadeShadowConfigBuilder, DirectionalLightShadowMap, NotShadowCaster,
-        ShadowFilteringMethod,
-    },
     prelude::*,
     window::{close_on_esc, PresentMode},
 };
 use bevy_egui::EguiPlugin;
 use bevy_framepace::{FramepacePlugin, FramepaceSettings, Limiter};
 use bevy_hanabi::prelude::*;
-use bevy_xpbd_3d::{
-    math::{Scalar, Vector},
-    prelude::*,
-};
-use camera::{CameraLeash, LeashedCamera, LeashedCameraBundle, LeashedCameraPlugin};
-use character_controller::{
-    CharacterControllerBundle, CharacterControllerPlugin, Grounded, JumpCount, Sliding,
-};
+use bevy_xpbd_3d::prelude::*;
+use camera::{spawn_camera, LeashedCameraPlugin};
+use character_controller::CharacterControllerPlugin;
 use checkpoint::{Checkpoint, Goal};
-use ghost::GhostData;
-use input::ResetSnapshot;
+use environment::spawn_sky;
 use jumppad::Jumppad;
-use map::{all_maps, Map};
+use map::{all_maps, spawn_map, Map};
 use physics::PhysicsLayers;
+use player::{rotate_player_model, spawn_player, update_player_animation};
+use scene::{setup_scene_once_loaded, unload};
 use timing::Countdown;
+use ui::{spawn_countdown_display, to_main_menu};
 use vfx::{create_ground_effect, create_portal};
 
 use crate::{
@@ -122,7 +114,6 @@ pub fn bevy_main() {
             //FramepacePlugin,
             CheckpointPlugin,
             VfxPlugin,
-            //EditorPlugin::default(),
         ))
         .add_plugins(LeashedCameraPlugin)
         .add_systems(Startup, (setup, setup_ui, setup_oneshots))
@@ -136,7 +127,7 @@ pub fn bevy_main() {
                 debug_things,
                 reset_to_checkpoint,
                 setup_scene_once_loaded,
-                update_animation,
+                update_player_animation,
                 rotate_player_model,
                 apply_jumppad_boost,
                 countdown_timer,
@@ -159,7 +150,6 @@ pub fn bevy_main() {
             ..default()
         });
 
-    //.add_plugins(WorldInspectorPlugin::default());
     app.run();
 }
 
@@ -176,73 +166,11 @@ pub fn load_map(
         assetserver.load("Fox.gltf#Animation4"), // jump
     ]));
 
-    let mut player_transform = Transform::from_translation(map.start_pos);
-    player_transform.translation.y -= 1.;
-    commands.spawn((
-        Name::new("Player"),
-        SceneBundle {
-            transform: player_transform,
-            scene: asset_handles.fox.clone(),
-            ..Default::default()
-        },
-        CameraLeash,
-        CharacterControllerBundle::new(
-            Collider::compound(vec![(
-                Vec3::new(0., 1.5, 0.),
-                Quat::default(),
-                Collider::ball(1.5),
-            )]),
-            Vector::NEG_Y * 9.81 * 2.0,
-        )
-        .with_movement(30.0, 0.98, 10.0, (15.0 as Scalar).to_radians()),
-        GhostData::default(),
-        Player,
-        MapEntityMarker,
-        ResetSnapshot::default(),
-        RayCaster::new(Vec3::new(0., 1., 0.), Vec3::ZERO).with_max_hits(1),
-    ));
+    spawn_player(&map, &mut commands, &asset_handles);
 
-    commands.spawn((
-        LeashedCameraBundle::default(),
-        Camera3dBundle {
-            transform: Transform::from_xyz(-1.0, 0.1, 1.0)
-                .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
-            camera: Camera {
-                hdr: true,
-                ..Default::default()
-            },
-            tonemapping: Tonemapping::TonyMcMapface,
-            ..Default::default()
-        },
-        ShadowFilteringMethod::Jimenez14,
-        BloomSettings::default(),
-        FogSettings {
-            color: Color::rgba(0.35, 0.48, 0.66, 1.0),
-            directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),
-            directional_light_exponent: 50.0,
-            falloff: FogFalloff::Linear {
-                start: 5.,
-                end: 400.,
-            },
-        },
-        TemporalAntiAliasBundle::default(),
-        MapEntityMarker,
-    ));
+    spawn_camera(&mut commands);
 
-    let map_data = assetserver.load(format!("{}.glb#Scene0", map.file));
-    commands.spawn((
-        Name::new("Map"),
-        AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
-        RigidBody::Static,
-        SceneBundle {
-            transform: Transform::from_translation(vec3(0., -3., 0.)),
-            scene: map_data,
-            ..Default::default()
-        },
-        MapEntityMarker,
-        MapMarker,
-        CollisionLayers::new([PhysicsLayers::Ground], [PhysicsLayers::Player]),
-    ));
+    spawn_map(assetserver, &map, &mut commands);
     let portal = effects.add(create_portal());
 
     commands.spawn((
@@ -306,128 +234,7 @@ pub fn load_map(
         }
     }
 
-    // commands.insert_resource(Countdown(Timer::new(
-    //     Duration::from_secs(3),
-    //     TimerMode::Once,
-    // )));
-    let text_style = TextStyle {
-        font_size: 60.,
-        ..Default::default()
-    };
-    commands
-        .spawn(NodeBundle {
-            style: Style {
-                flex_direction: FlexDirection::Column,
-                width: Val::Percent(100.),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .with_children(|commands| {
-            commands
-                .spawn(NodeBundle {
-                    style: Style {
-                        flex_direction: FlexDirection::Row,
-                        justify_content: JustifyContent::Center,
-                        margin: UiRect {
-                            top: Val::Percent(40.),
-                            ..Default::default()
-                        },
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                })
-                .with_children(|commands| {
-                    commands.spawn((
-                        TextBundle::from_section("", text_style)
-                            .with_text_alignment(TextAlignment::Center)
-                            .with_background_color(Color::RED),
-                        Countdown(Timer::new(Duration::from_secs(3), TimerMode::Once)),
-                    ));
-                });
-        });
-}
-
-pub fn update_animation(
-    mut query: Query<(
-        Entity,
-        &LinearVelocity,
-        Has<Grounded>,
-        Has<Sliding>,
-        &JumpCount,
-    )>,
-    mut animation_player: Query<&mut AnimationPlayer>,
-    animations: Res<Animations>,
-    children: Query<&Children>,
-    mut jc: Local<i32>,
-) {
-    for (e, linear_velocity, is_grounded, is_sliding, jump_count) in &mut query {
-        for entity in children.iter_descendants(e) {
-            if let Ok(mut animation_player) = animation_player.get_mut(entity) {
-                if linear_velocity.0.length() > 2. && (is_sliding || is_grounded) {
-                    animation_player
-                        .play_with_transition(
-                            animations.0[1].clone_weak(),
-                            Duration::from_millis(100),
-                        )
-                        .repeat();
-                    *jc = -1;
-                } else if !is_grounded && !is_sliding {
-                    if *jc != jump_count.0 as i32 {
-                        if animation_player.is_playing_clip(&animations.0[2]) {
-                            animation_player.replay();
-                        } else {
-                            animation_player.play_with_transition(
-                                animations.0[2].clone_weak(),
-                                Duration::from_millis(50),
-                            );
-                        }
-                        *jc = jump_count.0 as i32;
-                    }
-                } else {
-                    animation_player
-                        .play_with_transition(
-                            animations.0[0].clone_weak(),
-                            Duration::from_millis(100),
-                        )
-                        .repeat();
-                    *jc = -1;
-                }
-            }
-        }
-    }
-}
-
-pub fn rotate_player_model(
-    mut query: Query<&mut Transform, With<Player>>,
-    cameras: Query<&Transform, (With<LeashedCamera>, Without<Player>)>,
-) {
-    let camera_transform = cameras.single();
-    let forward = camera_transform
-        .rotation
-        .inverse()
-        .mul_vec3(Vec3::Z)
-        .normalize();
-    for mut transform in &mut query {
-        let angle = forward.xz().angle_between(Vec2::NEG_Y);
-
-        transform.rotation = Quat::from_rotation_y(-angle);
-    }
-}
-
-fn setup_scene_once_loaded(
-    animations: Res<Animations>,
-    mut players: Query<&mut AnimationPlayer, Added<AnimationPlayer>>,
-) {
-    for mut player in &mut players {
-        player.play(animations.0[0].clone_weak()).repeat();
-    }
-}
-
-pub fn unload(mut commands: Commands, query: Query<Entity, With<MapEntityMarker>>) {
-    for e in &query {
-        commands.entity(e).despawn_recursive();
-    }
+    spawn_countdown_display(commands);
 }
 
 pub fn setup_oneshots(world: &mut World) {
@@ -454,53 +261,5 @@ pub fn setup(
     //pace.limiter = Limiter::from_framerate(30.);
     commands.insert_resource(Time::new_with(Physics::variable(1. / 30.)));
 
-    let cascade_shadow_config = CascadeShadowConfigBuilder {
-        first_cascade_far_bound: 100.,
-        maximum_distance: 600.0,
-        ..default()
-    }
-    .build();
-
-    commands.insert_resource(DirectionalLightShadowMap { size: 2048 });
-
-    // Sun
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
-            color: Color::rgb(0.98, 0.95, 0.82),
-            shadows_enabled: true,
-            ..default()
-        },
-        transform: Transform::from_xyz(0.0, 0.0, 0.0)
-            .looking_at(Vec3::new(0.15, -0.20, 0.25), Vec3::Y),
-        cascade_shadow_config,
-        ..default()
-    });
-
-    // Sky
-    commands.spawn((
-        PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Box::default())),
-            material: materials.add(StandardMaterial {
-                base_color: Color::hex("888888").unwrap(),
-                unlit: true,
-                cull_mode: None,
-                ..default()
-            }),
-            transform: Transform::from_scale(Vec3::splat(600.0)),
-            ..default()
-        },
-        NotShadowCaster,
-    ));
-}
-
-fn to_main_menu(
-    mut commands: Commands,
-    oneshots: Res<StateOneshots>,
-    keyboard_input: Res<Input<KeyCode>>,
-    mut state: ResMut<NextState<crate::State>>,
-) {
-    if keyboard_input.just_pressed(KeyCode::Escape) {
-        state.set(crate::State::Mainscreen);
-        commands.run_system(oneshots.unload);
-    }
+    spawn_sky(commands, &mut meshes, &mut materials);
 }
