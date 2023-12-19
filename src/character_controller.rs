@@ -85,7 +85,7 @@ pub struct ControllerGravity(Vector);
 /// to be able to climb and jump. If the slope is steeper than this angle,
 /// the character will slide down.
 #[derive(Component)]
-pub struct MaxSlopeAngle(Scalar);
+pub struct MaxSlopeAngle(pub Scalar);
 
 /// A bundle that contains the components needed for a basic
 /// kinematic character controller.
