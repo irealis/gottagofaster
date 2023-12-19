@@ -139,6 +139,7 @@ pub fn bevy_main() {
                 countdown_timer,
                 tick,
                 display_countdown,
+                to_main_menu,
             )
                 .run_if(in_state(State::Playing)),
         )
@@ -147,8 +148,13 @@ pub fn bevy_main() {
             (close_on_esc, ui_finish).run_if(in_state(State::Finished)),
         );
 
-    // #[cfg(debug_assertions)]
-    app.add_plugins(PhysicsDebugPlugin::default());
+    // Note: Enabling debug visualization has a big performance hit
+    #[cfg(feature = "physics_debug")]
+    app.add_plugins(PhysicsDebugPlugin::default())
+        .insert_resource(PhysicsDebugConfig {
+            aabb_color: Some(Color::ANTIQUE_WHITE),
+            ..default()
+        });
 
     //.add_plugins(WorldInspectorPlugin::default());
     app.run();
@@ -223,8 +229,8 @@ pub fn load_map(
     let map_data = assetserver.load(format!("{}.glb#Scene0", map.file));
     commands.spawn((
         Name::new("Map"),
-        // AsyncSceneCollider::new(Some(map.collider_type())),
-        // RigidBody::Static,
+        AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
+        RigidBody::Static,
         SceneBundle {
             transform: Transform::from_translation(vec3(0., -3., 0.)),
             scene: map_data,
@@ -234,21 +240,21 @@ pub fn load_map(
         CollisionLayers::new([PhysicsLayers::Ground], [PhysicsLayers::Player]),
     ));
 
-    let map_collisions = assetserver.load(format!("{}_collisions.glb#Scene0", map.file));
-    commands.spawn((
-        Name::new("Map collisions"),
-        AsyncSceneCollider::new(Some(ComputedCollider::ConvexHull)),
-        SceneBundle {
-            transform: Transform::from_translation(vec3(0., -3., 0.)),
-            scene: map_collisions,
-            visibility: Visibility::Hidden,
-            ..Default::default()
-        },
-        RigidBody::Static,
-        MapEntityMarker,
-        CollisionLayers::new([PhysicsLayers::Ground], [PhysicsLayers::Player]),
-    ));
-
+    // let map_collisions = assetserver.load(format!("{}_collisions.glb#Scene0", map.file));
+    // commands.spawn((
+    //     Name::new("Map collisions"),
+    //     AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
+    //     SceneBundle {
+    //         transform: Transform::from_translation(vec3(0., -3., 0.)),
+    //         scene: map_collisions,
+    //         visibility: Visibility::Hidden,
+    //         ..Default::default()
+    //     },
+    //     RigidBody::Static,
+    //     MapEntityMarker,
+    //     CollisionLayers::new([PhysicsLayers::Ground], [PhysicsLayers::Player]),
+    // ));
+    //
     let portal = effects.add(create_portal());
 
     commands.spawn((
