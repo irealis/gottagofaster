@@ -20,7 +20,7 @@ pub fn spawn_sky(
     // Sun
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
-            color: Color::rgb(0.98, 0.95, 0.82),
+            color: Color::hex("e9bb93").unwrap(),
             shadows_enabled: true,
             ..default()
         },
@@ -35,7 +35,7 @@ pub fn spawn_sky(
         PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Box::default())),
             material: materials.add(StandardMaterial {
-                base_color: Color::hex("888888").unwrap(),
+                base_color: Color::hex("e9bb93").unwrap(),
                 unlit: true,
                 cull_mode: None,
                 ..default()

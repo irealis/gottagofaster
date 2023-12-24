@@ -82,7 +82,7 @@ impl Plugin for LeashedCameraPlugin {
     }
 }
 
-pub fn spawn_camera(commands: &mut Commands<'_, '_>) {
+pub fn spawn_camera(commands: &mut Commands) {
     commands.spawn((
         LeashedCameraBundle::default(),
         Camera3dBundle {
@@ -98,7 +98,7 @@ pub fn spawn_camera(commands: &mut Commands<'_, '_>) {
         ShadowFilteringMethod::Jimenez14,
         BloomSettings::default(),
         FogSettings {
-            color: Color::rgba(0.35, 0.48, 0.66, 1.0),
+            color: Color::hex("bd6868ff").unwrap(),
             directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),
             directional_light_exponent: 50.0,
             falloff: FogFalloff::Linear {
