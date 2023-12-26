@@ -29,12 +29,22 @@ pub struct LeashedCameraBundle {
 impl Default for LeashedCameraBundle {
     fn default() -> Self {
         Self {
-            camera: LeashedCamera { pitch: 0., yaw: 0. },
+            camera: LeashedCamera {
+                pitch: -0.2,
+                yaw: 0.,
+            },
             ignore_mouse: IgnoreMouseInput(false),
             collider: Collider::ball(0.1),
             body: RigidBody::Kinematic,
             distance: CameraDistance(30.),
         }
+    }
+}
+
+impl LeashedCameraBundle {
+    fn with_yaw(mut self, yaw: f32) -> Self {
+        self.camera.yaw = yaw;
+        self
     }
 }
 
@@ -82,9 +92,9 @@ impl Plugin for LeashedCameraPlugin {
     }
 }
 
-pub fn spawn_camera(commands: &mut Commands) {
+pub fn spawn_camera(commands: &mut Commands, yaw: f32) {
     commands.spawn((
-        LeashedCameraBundle::default(),
+        LeashedCameraBundle::default().with_yaw(yaw),
         Camera3dBundle {
             transform: Transform::from_xyz(-1.0, 0.1, 1.0)
                 .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),

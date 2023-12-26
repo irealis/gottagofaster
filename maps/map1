@@ -4,6 +4,7 @@
     "start_pos": [0.0,10.0,0.0],
     "end_pos": [-0.67, 8.0, -442.0],
     "end_rotation": 0.0,
+    "start_rotation": 180.0,
     "checkpoints": [{
         "pos": [-1.6, -2.8, -75.0],
         "rot": 0.0

@@ -15,6 +15,7 @@ pub struct Map {
     pub start_pos: Vec3,
     pub end_pos: Vec3,
     pub end_rotation: f32,
+    pub start_rotation: f32,
     pub checkpoints: Vec<Checkpoint>,
     pub pads: Option<Vec<Jumppad>>,
     collidertype: Option<u32>,

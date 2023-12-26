@@ -2,6 +2,7 @@
     "name": "urban",
     "collidertype": 1,
     "file": "urban",
+    "start_rotation": 0.0,
     "start_pos": [0.0,10.0,0.0],
     "end_pos": [0.0, -3.0, 34.0],
     "end_rotation": 0.1,

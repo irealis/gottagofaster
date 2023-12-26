@@ -19,6 +19,7 @@ use crate::{
 pub fn spawn_player(map: &Res<Map>, commands: &mut Commands, asset_handles: &Res<AssetHandles>) {
     let mut player_transform = Transform::from_translation(map.start_pos);
     player_transform.translation.y -= 1.;
+
     commands.spawn((
         Name::new("Player"),
         SceneBundle {

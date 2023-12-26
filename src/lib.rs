@@ -171,7 +171,7 @@ pub fn load_map(
 
     spawn_player(&map, &mut commands, &asset_handles);
 
-    spawn_camera(&mut commands);
+    spawn_camera(&mut commands, map.start_rotation.to_radians());
 
     spawn_map(assetserver, &map, &mut commands);
     let portal = effects.add(create_portal());
