@@ -57,6 +57,10 @@ pub struct CharacterController;
 #[component(storage = "SparseSet")]
 pub struct Grounded;
 
+/// A marker component indicating that an entity just landed on the ground.
+#[derive(Component)]
+pub struct JustGrounded;
+
 /// A marker component indicating that an entity is on the ground.
 #[derive(Component)]
 #[component(storage = "SparseSet")]
@@ -197,16 +201,23 @@ fn keyboard_input(
 fn update_grounded(
     mut commands: Commands,
     mut query: Query<
-        (Entity, &ShapeHits, &Rotation, Option<&MaxSlopeAngle>),
+        (
+            Entity,
+            &ShapeHits,
+            &Rotation,
+            Option<&MaxSlopeAngle>,
+            Has<Grounded>,
+        ),
         With<CharacterController>,
     >,
     layers: Query<&CollisionLayers>,
 ) {
-    for (entity, hits, rotation, max_slope_angle) in &mut query {
+    for (entity, hits, rotation, max_slope_angle, was_grounded) in &mut query {
         // The character is grounded if the shape caster has a hit with a normal
         // that isn't too steep.
         let mut is_sliding = false;
         let mut is_grounded = false;
+
         _ = hits.iter().any(|hit| {
             if let Ok(layer) = layers.get(hit.entity) {
                 if !layer.contains_group(PhysicsLayers::Ground) {
@@ -226,6 +237,12 @@ fn update_grounded(
                 true
             }
         });
+
+        if !was_grounded && is_grounded {
+            commands.entity(entity).try_insert(JustGrounded);
+        } else {
+            commands.entity(entity).remove::<JustGrounded>();
+        }
 
         if is_grounded {
             // Try: prevent racecondition when unloading

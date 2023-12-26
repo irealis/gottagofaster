@@ -1,4 +1,5 @@
 mod assets;
+mod audio;
 mod camera;
 mod character_controller;
 mod checkpoint;
@@ -44,6 +45,7 @@ use vfx::{create_ground_effect, create_portal};
 
 use crate::{
     assets::AssetHandles,
+    audio::AudioPlugin,
     checkpoint::CheckpointPlugin,
     debug::debug_things,
     ghost::GhostPlugin,
@@ -108,6 +110,7 @@ pub fn bevy_main() {
             TemporalAntiAliasPlugin,
             PhysicsPlugins::default(),
             CharacterControllerPlugin,
+            AudioPlugin,
             HanabiPlugin,
             GhostPlugin,
             EguiPlugin,
