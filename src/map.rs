@@ -49,7 +49,7 @@ impl Map {
         let mut file = File::open(path).unwrap();
         let mut contents = String::new();
         file.read_to_string(&mut contents).unwrap();
-        serde_json::from_str::<Map>(&contents).unwrap()
+        serde_json::from_str::<Map>(&contents).expect("Map could not be load from json")
     }
 
     pub fn collider_type(&self) -> ComputedCollider {
