@@ -279,40 +279,35 @@ fn movement(
 ) {
     let delta_time = time.delta_seconds();
 
-    let camera_transform = cameras.single();
-    for event in movement_event_reader.read() {
-        for (
-            movement_acceleration,
-            jump_impulse,
-            mut linear_velocity,
-            mut jump_count,
-            mut acc_mul,
-            is_grounded,
-            is_sliding,
-        ) in &mut controllers
-        {
-            match event {
-                MovementAction::Move(mut direction) => {
-                    direction = camera_transform.rotation.inverse().mul_vec3(direction);
-                    linear_velocity.x +=
-                        direction.x * movement_acceleration.0 * acc_mul.0 * delta_time;
-                    linear_velocity.z -=
-                        direction.z * movement_acceleration.0 * acc_mul.0 * delta_time;
-                }
-                MovementAction::Jump => {
-                    if is_grounded || is_sliding {
-                        acc_mul.0 += 1.1;
-                        dbg!(acc_mul.0);
-                        // let forward = camera_transform.rotation.inverse().mul_vec3(Vec3::Z);
-                        // linear_velocity.x +=
-                        //     forward.x * movement_acceleration.0 * acc_mul.0 * delta_time;
-                        // linear_velocity.z -=
-                        //     forward.z * movement_acceleration.0 * acc_mul.0 * delta_time;
-                        jump_count.0 = 0;
-                        linear_velocity.y = jump_impulse.0;
-                    } else if jump_count.0 < 2 {
-                        jump_count.0 += 1;
-                        linear_velocity.y = jump_impulse.0;
+    if let Ok(camera_transform) = cameras.get_single() {
+        for event in movement_event_reader.read() {
+            for (
+                movement_acceleration,
+                jump_impulse,
+                mut linear_velocity,
+                mut jump_count,
+                mut acc_mul,
+                is_grounded,
+                is_sliding,
+            ) in &mut controllers
+            {
+                match event {
+                    MovementAction::Move(mut direction) => {
+                        direction = camera_transform.rotation.inverse().mul_vec3(direction);
+                        linear_velocity.x +=
+                            direction.x * movement_acceleration.0 * acc_mul.0 * delta_time;
+                        linear_velocity.z -=
+                            direction.z * movement_acceleration.0 * acc_mul.0 * delta_time;
+                    }
+                    MovementAction::Jump => {
+                        if is_grounded || is_sliding {
+                            acc_mul.0 += 1.1;
+                            jump_count.0 = 0;
+                            linear_velocity.y = jump_impulse.0;
+                        } else if jump_count.0 < 2 {
+                            jump_count.0 += 1;
+                            linear_velocity.y = jump_impulse.0;
+                        }
                     }
                 }
             }
