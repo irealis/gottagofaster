@@ -36,7 +36,7 @@ use jumppad::Jumppad;
 use map::{all_maps, spawn_map, Map};
 use physics::PhysicsLayers;
 use player::{rotate_player_model, spawn_player, update_player_animation};
-use scene::{setup_scene_once_loaded, unload, ScenePlugin};
+use scene::{setup_scene_once_loaded, unload};
 use ui::{spawn_countdown_display, to_main_menu};
 use vfx::{create_ground_effect, create_portal};
 
@@ -115,7 +115,6 @@ pub fn bevy_main() {
             CheckpointPlugin,
             VfxPlugin,
             EventPlugin,
-            ScenePlugin,
         ))
         .add_plugins(LeashedCameraPlugin)
         .add_systems(Startup, (setup, setup_ui, setup_oneshots))

@@ -7,7 +7,8 @@ use std::{
 
 use bevy::{ecs::system::SystemId, prelude::*};
 use bevy_tweening::{
-    lens::TransformPositionLens, Animator, EaseMethod, Sequence, Tween, TweeningPlugin,
+    lens::{TransformPositionLens, TransformRotationLens},
+    Animator, EaseMethod, Lens, Sequence, Tween, TweeningPlugin,
 };
 use serde::{Deserialize, Serialize};
 
@@ -37,7 +38,7 @@ impl Plugin for GhostPlugin {
 
 #[derive(Component, Serialize, Deserialize, Default)]
 pub struct GhostData {
-    log: Vec<Vec3>,
+    log: Vec<(Vec3, Quat)>,
     duration: Vec<f32>,
 }
 
@@ -91,19 +92,30 @@ pub fn ghost_recorder(
     *elapsed += dt;
 
     if *elapsed > 0.3 {
-        ghost_data.log.push(transform.translation);
+        ghost_data
+            .log
+            .push((transform.translation, transform.rotation));
         ghost_data.duration.push(*elapsed);
         *elapsed = 0.;
     }
 }
 
-pub fn replay_ghost(
-    map: Res<Map>,
-    handles: Res<AssetHandles>,
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
+pub struct RotationTranslationLens {
+    pub start: Vec3,
+    pub end: Vec3,
+    pub rstart: Quat,
+    pub rend: Quat,
+}
+
+impl Lens<Transform> for RotationTranslationLens {
+    fn lerp(&mut self, target: &mut Transform, ratio: f32) {
+        let value = self.start + (self.end - self.start) * ratio;
+        target.translation = value;
+        target.rotation = self.rstart.slerp(self.rend, ratio);
+    }
+}
+
+pub fn replay_ghost(map: Res<Map>, handles: Res<AssetHandles>, mut commands: Commands) {
     let name = format!("maps/{}.replay", &map.name);
     let path = Path::new(&name);
     if !path.exists() {
@@ -114,32 +126,35 @@ pub fn replay_ghost(
     let mut contents = String::new();
     file.read_to_string(&mut contents).unwrap();
 
-    let data = serde_json::from_str::<GhostData>(&contents).unwrap();
+    let data = serde_json::from_str::<GhostData>(&contents);
 
-    //let mut tweens;
-    let tweens = (0..(data.log.len() - 1)).map(|i| {
-        Tween::new(
-            EaseMethod::Linear,
-            Duration::from_secs_f32(data.duration[i]),
-            TransformPositionLens {
-                start: data.log[i],
-                end: data.log[i + 1],
+    if let Ok(data) = data {
+        let tweens = (0..(data.log.len() - 1)).map(|i| {
+            Tween::new(
+                EaseMethod::Linear,
+                Duration::from_secs_f32(data.duration[i]),
+                RotationTranslationLens {
+                    start: data.log[i].0,
+                    end: data.log[i + 1].0,
+                    rstart: data.log[i].1,
+                    rend: data.log[i].1,
+                },
+            )
+        });
+
+        let sequence = Sequence::new(tweens);
+
+        commands.spawn((
+            Name::new("Ghost"),
+            SceneBundle {
+                scene: handles.fox.clone(),
+                ..Default::default()
             },
-        )
-    });
-
-    let sequence = Sequence::new(tweens);
-
-    commands.spawn((
-        Name::new("Ghost"),
-        SceneBundle {
-            scene: handles.fox.clone(),
-            ..Default::default()
-        },
-        Animator::new(sequence),
-        Ghost,
-        MapEntityMarker,
-    ));
+            Animator::new(sequence),
+            Ghost,
+            MapEntityMarker,
+        ));
+    }
 }
 
 fn make_ghost_scene_transparent(
