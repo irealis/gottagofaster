@@ -94,6 +94,7 @@ pub fn ui_finish(
     mut state: ResMut<NextState<State>>,
     mut commands: Commands,
     mut windows: Query<&mut Window>,
+    mut ew: EventWriter<StateEvents>,
     query: Query<&MapDuration>,
     oneshots: Res<StateOneshots>,
     ghost_oneshots: Res<GhostOneshots>,
@@ -127,6 +128,7 @@ pub fn ui_finish(
                     if ui.button("Back to menu").clicked() {
                         state.set(State::Mainscreen);
                         commands.run_system(oneshots.unload);
+                        ew.send(StateEvents::LoadMainscreen);
                     }
                 });
                 egui::warn_if_debug_build(ui);
