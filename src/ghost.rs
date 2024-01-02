@@ -13,7 +13,11 @@ use bevy_tweening::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    assets::AssetHandles, character_controller::CharacterController, map::Map, MapEntityMarker,
+    assets::{Animations, AssetHandles},
+    character_controller::CharacterController,
+    map::Map,
+    timing::Countdown,
+    MapEntityMarker,
 };
 
 pub struct GhostPlugin;
@@ -30,7 +34,7 @@ impl Plugin for GhostPlugin {
             .add_systems(Startup, register_oneshots)
             .add_systems(
                 Update,
-                (make_ghost_scene_transparent, ghost_recorder)
+                (make_ghost_scene_transparent, ghost_recorder, animate_ghost)
                     .run_if(in_state(crate::State::Playing)),
             );
     }
@@ -177,6 +181,28 @@ fn make_ghost_scene_transparent(
                 let handle = assets.add(material);
 
                 commands.entity(child).insert(handle);
+            }
+        }
+    }
+}
+
+fn animate_ghost(
+    mut animation_player: Query<&mut AnimationPlayer>,
+    query: Query<Entity, Has<Ghost>>,
+    countdown: Query<&Countdown>,
+    animations: Res<Animations>,
+    children: Query<&Children>,
+) {
+    if countdown.get_single().is_ok() {
+        return;
+    }
+
+    for e in &query {
+        for entity in children.iter_descendants(e) {
+            if let Ok(mut animation_player) = animation_player.get_mut(entity) {
+                animation_player
+                    .play_with_transition(animations.0[1].clone_weak(), Duration::from_millis(100))
+                    .repeat();
             }
         }
     }
