@@ -7,10 +7,11 @@ use bevy_egui::{
 };
 
 use crate::{
+    events::StateEvents,
     ghost::GhostOneshots,
     map::Map,
     timing::{Countdown, MapDuration},
-    Maps, State, StateOneshots,
+    MapEntityMarker, Maps, State, StateOneshots,
 };
 
 pub fn setup_ui(mut contexts: EguiContexts) {
@@ -139,10 +140,16 @@ pub fn to_main_menu(
     oneshots: Res<StateOneshots>,
     keyboard_input: Res<Input<KeyCode>>,
     mut state: ResMut<NextState<crate::State>>,
+    mut ew: EventWriter<StateEvents>,
+    mut windows: Query<&mut Window>,
 ) {
     if keyboard_input.just_pressed(KeyCode::Escape) {
+        let mut window = windows.single_mut();
         state.set(crate::State::Mainscreen);
         commands.run_system(oneshots.unload);
+        ew.send(StateEvents::LoadMainscreen);
+        window.cursor.grab_mode = CursorGrabMode::None;
+        window.cursor.visible = true;
     }
 }
 
@@ -152,14 +159,17 @@ pub fn spawn_countdown_display(mut commands: Commands<'_, '_>) {
         ..Default::default()
     };
     commands
-        .spawn(NodeBundle {
-            style: Style {
-                flex_direction: FlexDirection::Column,
-                width: Val::Percent(100.),
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    flex_direction: FlexDirection::Column,
+                    width: Val::Percent(100.),
+                    ..Default::default()
+                },
                 ..Default::default()
             },
-            ..Default::default()
-        })
+            MapEntityMarker,
+        ))
         .with_children(|commands| {
             commands
                 .spawn(NodeBundle {
