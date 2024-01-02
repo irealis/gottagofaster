@@ -5,6 +5,7 @@ mod character_controller;
 mod checkpoint;
 mod debug;
 mod environment;
+mod events;
 mod ghost;
 mod input;
 mod jumppad;
@@ -16,30 +17,26 @@ mod timing;
 mod ui;
 mod vfx;
 
-use std::time::Duration;
-
 use assets::Animations;
 use bevy::{
     core_pipeline::experimental::taa::TemporalAntiAliasPlugin,
     ecs::system::SystemId,
-    math::vec3,
     prelude::*,
     window::{close_on_esc, PresentMode},
 };
 use bevy_egui::EguiPlugin;
-use bevy_framepace::{FramepacePlugin, FramepaceSettings, Limiter};
 use bevy_hanabi::prelude::*;
 use bevy_xpbd_3d::prelude::*;
 use camera::{spawn_camera, LeashedCameraPlugin};
 use character_controller::CharacterControllerPlugin;
 use checkpoint::{Checkpoint, Goal};
 use environment::spawn_sky;
+use events::{EventPlugin, StateEvents};
 use jumppad::Jumppad;
 use map::{all_maps, spawn_map, Map};
 use physics::PhysicsLayers;
 use player::{rotate_player_model, spawn_player, update_player_animation};
-use scene::{setup_scene_once_loaded, unload};
-use timing::Countdown;
+use scene::{setup_scene_once_loaded, unload, ScenePlugin};
 use ui::{spawn_countdown_display, to_main_menu};
 use vfx::{create_ground_effect, create_portal};
 
@@ -117,6 +114,8 @@ pub fn bevy_main() {
             //FramepacePlugin,
             CheckpointPlugin,
             VfxPlugin,
+            EventPlugin,
+            ScenePlugin,
         ))
         .add_plugins(LeashedCameraPlugin)
         .add_systems(Startup, (setup, setup_ui, setup_oneshots))
@@ -255,6 +254,7 @@ pub fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     //mut pace: ResMut<FramepaceSettings>,
     aserv: Res<AssetServer>,
+    mut ew: EventWriter<StateEvents>,
 ) {
     let maps = all_maps();
     commands.insert_resource(Maps { maps });
@@ -265,4 +265,5 @@ pub fn setup(
     commands.insert_resource(Time::new_with(Physics::variable(1. / 30.)));
 
     spawn_sky(commands, &mut meshes, &mut materials);
+    ew.send(StateEvents::LoadMainscreen);
 }

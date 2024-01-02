@@ -67,6 +67,7 @@ pub fn ui_mainscreen(
                     ui.collapsing("Load map", |ui| {
                         for map in &maps.maps {
                             if ui.button(map).clicked() {
+                                commands.run_system(oneshots.unload);
                                 let mut window = windows.single_mut();
                                 window.cursor.grab_mode = CursorGrabMode::Locked;
                                 window.cursor.visible = false;
