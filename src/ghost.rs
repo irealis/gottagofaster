@@ -67,18 +67,24 @@ pub fn register_oneshots(world: &mut World) {
 
 pub fn store_ghost(
     map: Res<Map>,
-    data: Query<&GhostData, Without<Replay>>,
-    old_data: Query<&GhostData, With<Replay>>,
+    data: Query<&GhostData, Without<Ghost>>,
+    old_data: Query<&GhostData, With<Ghost>>,
 ) {
     let data = data.single();
     let serialized = serde_json::to_string(data).unwrap();
 
     if let Ok(old_data) = old_data.get_single() {
+        println!(
+            "Old ghost data: {}, new: {}",
+            old_data.duration.iter().sum::<f32>(),
+            data.duration.iter().sum::<f32>()
+        );
         if old_data.duration.iter().sum::<f32>() < data.duration.iter().sum() {
             return;
         }
     }
 
+    println!("New ghost is faster, overwriting old ghost.");
     // Create or truncate file
     let mut file = File::create(format!("maps/{}.replay", &map.name)).unwrap();
     _ = file.write_all(serialized.as_bytes());
@@ -156,6 +162,7 @@ pub fn replay_ghost(map: Res<Map>, handles: Res<AssetHandles>, mut commands: Com
             },
             Animator::new(sequence),
             Ghost,
+            data, // Inserted in order to compare the old with the new time
             MapEntityMarker,
         ));
     }
