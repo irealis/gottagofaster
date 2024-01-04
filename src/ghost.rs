@@ -52,9 +52,6 @@ pub struct GhostDataIndex(usize);
 #[derive(Component)]
 pub struct Ghost;
 
-#[derive(Component)]
-pub struct Replay;
-
 #[derive(Resource)]
 pub struct MapName(pub String);
 

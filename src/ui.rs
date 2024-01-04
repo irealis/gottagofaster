@@ -80,7 +80,9 @@ pub fn ui_mainscreen(
                         }
                     });
                 });
-                if ui.button("Leaderboard").clicked() {}
+                if ui.button("Leaderboard").clicked() {
+                    state.set(State::Leaderboard);
+                }
                 if ui.button("Quit").clicked() {
                     exit.send(AppExit);
                 }
@@ -129,6 +131,7 @@ pub fn ui_finish(
                         state.set(State::Mainscreen);
                         commands.run_system(oneshots.unload);
                         ew.send(StateEvents::LoadMainscreen);
+                        commands.remove_resource::<Map>();
                     }
                 });
                 egui::warn_if_debug_build(ui);

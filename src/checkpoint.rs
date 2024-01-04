@@ -5,7 +5,8 @@ use bevy_xpbd_3d::prelude::{
 
 use crate::{
     camera::LeashedCamera, character_controller::JumpCount, ghost::GhostOneshots,
-    input::ResetSnapshot, timing::MapDuration, Player, State,
+    input::ResetSnapshot, leaderboard::LeaderboardEvent, map::Map, timing::MapDuration, Player,
+    State,
 };
 
 pub struct CheckpointPlugin;
@@ -71,6 +72,7 @@ fn on_goal(
     mut commands: Commands,
     oneshots: Res<GhostOneshots>,
     goals: Query<(&Collider, &Transform), With<Goal>>,
+    map: Res<Map>,
     mut player: Query<
         (
             &Collider,
@@ -82,6 +84,7 @@ fn on_goal(
     >,
     mut state: ResMut<NextState<State>>,
     mut windows: Query<&mut Window>,
+    mut ew: EventWriter<LeaderboardEvent>,
 ) {
     let (pcollider, ptransform, all_checkpoints_reached, mut mapduration) = player.single_mut();
 
@@ -102,6 +105,10 @@ fn on_goal(
 
                     if let Some(ref mut mapduration) = mapduration {
                         mapduration.stop();
+                        ew.send(LeaderboardEvent::SaveLeaderboardData(
+                            map.name.clone(),
+                            mapduration.elapsed().as_secs_f32(),
+                        ));
                     }
 
                     let mut window = windows.single_mut();

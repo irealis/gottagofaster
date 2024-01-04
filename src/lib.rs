@@ -9,6 +9,7 @@ mod events;
 mod ghost;
 mod input;
 mod jumppad;
+mod leaderboard;
 mod map;
 mod physics;
 mod player;
@@ -33,6 +34,7 @@ use checkpoint::{Checkpoint, Goal};
 use environment::spawn_sky;
 use events::{EventPlugin, StateEvents};
 use jumppad::Jumppad;
+use leaderboard::LeaderboardPlugin;
 use map::{all_maps, spawn_map, Map};
 use physics::PhysicsLayers;
 use player::{rotate_player_model, spawn_player, update_player_animation};
@@ -74,6 +76,7 @@ pub enum State {
     Mainscreen,
     Playing,
     Finished,
+    Leaderboard,
 }
 
 #[derive(Resource)]
@@ -115,6 +118,7 @@ pub fn bevy_main() {
             CheckpointPlugin,
             VfxPlugin,
             EventPlugin,
+            LeaderboardPlugin,
         ))
         .add_plugins(LeashedCameraPlugin)
         .add_systems(Startup, (setup, setup_ui, setup_oneshots))
