@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{f32::consts::PI, time::Duration};
 
 use bevy::prelude::*;
 use bevy_xpbd_3d::{
@@ -50,15 +50,21 @@ pub fn rotate_player_model(
     cameras: Query<&Transform, (With<LeashedCamera>, Without<Player>)>,
 ) {
     let camera_transform = cameras.single();
-    let forward = camera_transform
-        .rotation
-        .inverse()
-        .mul_vec3(Vec3::Z)
-        .normalize();
-    for mut transform in &mut query {
-        let angle = forward.xz().angle_between(Vec2::NEG_Y);
 
-        transform.rotation = Quat::from_rotation_y(-angle);
+    let forward = camera_transform.forward();
+    let forward_xz = Vec3::new(forward.x, 0.0, forward.z).normalize();
+
+    for mut transform in &mut query {
+        let angle_to_neg_z = forward_xz.angle_between(Vec3::NEG_Z);
+
+        let cross_product = Vec3::NEG_Z.cross(forward_xz);
+        let rotation_direction = if cross_product.y.is_sign_positive() {
+            1.0
+        } else {
+            -1.0
+        };
+
+        transform.rotation = Quat::from_rotation_y(rotation_direction * angle_to_neg_z + PI);
     }
 }
 
