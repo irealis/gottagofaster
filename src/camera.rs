@@ -107,15 +107,16 @@ pub fn spawn_camera(commands: &mut Commands, yaw: f32) {
         },
         ShadowFilteringMethod::Jimenez14,
         BloomSettings::default(),
-        FogSettings {
-            color: Color::hex("bd6868ff").unwrap(),
-            directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),
-            directional_light_exponent: 50.0,
-            falloff: FogFalloff::Linear {
-                start: 5.,
-                end: 400.,
-            },
-        },
+        // FogSettings {
+        //     color: Color::hex("bd6868ff").unwrap(),
+        //     directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),
+        //     directional_light_exponent: 50.0,
+        //     falloff: FogFalloff::Linear {
+        //         start: 5.,
+        //         end: 400.,
+        //     },
+        // },
+        #[cfg(not(target_arch = "wasm32"))]
         TemporalAntiAliasBundle::default(),
         MapEntityMarker,
     ));

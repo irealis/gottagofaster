@@ -1,4 +1,7 @@
 use bevy::{pbr::NotShadowCaster, prelude::*};
+
+use crate::timing::MapDuration;
+#[cfg(not(target_arch = "wasm32"))]
 use bevy_hanabi::prelude::*;
 
 use crate::{
@@ -10,33 +13,40 @@ pub struct VfxPlugin;
 
 impl Plugin for VfxPlugin {
     fn build(&self, app: &mut App) {
+        app.add_systems(Update, center_sky.run_if(in_state(crate::State::Playing)));
+
+        #[cfg(not(target_arch = "wasm32"))]
         app.add_systems(
             Update,
-            (center_sky, emit_ground_effect, emit_jump_effect)
-                .run_if(in_state(crate::State::Playing)),
+            (emit_jump_effect, emit_ground_effect).run_if(in_state(crate::State::Playing)),
         );
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(clippy::type_complexity)]
 pub fn emit_ground_effect(
-    mut before: Local<bool>,
     mut effect: Query<(&mut EffectSpawner, &mut EffectProperties, &mut Transform), Without<Player>>,
-    query: Query<(&Transform, Has<Grounded>, Has<Sliding>), With<Player>>,
+    query: Query<
+        &Transform,
+        (
+            With<Player>,
+            With<MapDuration>,
+            Or<(Added<Sliding>, Added<Grounded>)>,
+        ),
+    >,
 ) {
-    if let Ok((ptransform, is_grounded, is_sliding)) = query.get_single() {
+    if let Ok(ptransform) = query.get_single() {
         if let Ok((mut spawner, mut properties, mut transform)) = effect.get_single_mut() {
-            if (is_grounded || is_sliding) && !*before {
-                // encoded as `0xAABBGGRR`
-                properties.set("particle_color", Vec4::new(1., 0., 0., 1.).into());
-                transform.translation = ptransform.translation;
-                spawner.reset();
-            }
-
-            *before = is_grounded || is_sliding;
+            // encoded as `0xAABBGGRR`
+            properties.set("particle_color", Vec4::new(1., 0., 0., 1.).into());
+            transform.translation = ptransform.translation;
+            spawner.reset();
         }
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn emit_jump_effect(
     mut effect: Query<(&mut EffectSpawner, &mut EffectProperties, &mut Transform), Without<Player>>,
     player: Query<(&Transform, &JumpCount), (With<Player>, Changed<JumpCount>)>,
@@ -67,6 +77,7 @@ pub fn center_sky(
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn create_portal() -> EffectAsset {
     let mut color_gradient1 = Gradient::new();
     color_gradient1.add_key(0.0, Vec4::new(2.0, 2.0, 4.0, 1.0));
@@ -123,6 +134,7 @@ pub fn create_portal() -> EffectAsset {
         })
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn create_ground_effect() -> EffectAsset {
     let mut gradient = Gradient::new();
     gradient.add_key(0.0, Vec4::new(0.1, 0.1, 1., 1.));

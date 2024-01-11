@@ -1,6 +1,5 @@
-use std::time::{Duration, Instant};
-
 use bevy::prelude::*;
+use instant::{Duration, Instant};
 
 use crate::Player;
 

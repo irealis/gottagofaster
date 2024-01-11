@@ -11,6 +11,7 @@ use crate::{physics::PhysicsLayers, MapEntityMarker, MapMarker};
 #[derive(Resource, Debug, Serialize, Deserialize)]
 pub struct Map {
     pub name: String,
+    pub scene: Option<String>,
     pub file: String,
     pub start_pos: Vec3,
     pub end_pos: Vec3,
@@ -80,7 +81,11 @@ pub fn spawn_map(
     map: &Res<'_, Map>,
     commands: &mut Commands<'_, '_>,
 ) {
-    let map_data = assetserver.load(format!("{}.glb#Scene0", map.file));
+    let map_data = if let Some(scene) = &map.scene {
+        assetserver.load(format!("{}.glb#{}", map.file, scene))
+    } else {
+        assetserver.load(format!("{}.glb#Scene0", map.file))
+    };
     commands.spawn((
         Name::new("Map"),
         AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),

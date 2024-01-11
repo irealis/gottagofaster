@@ -192,7 +192,7 @@ fn make_ghost_scene_transparent(
 
 fn animate_ghost(
     mut animation_player: Query<&mut AnimationPlayer>,
-    query: Query<Entity, Has<Ghost>>,
+    query: Query<Entity, With<Ghost>>,
     countdown: Query<&Countdown>,
     animations: Res<Animations>,
     children: Query<&Children>,

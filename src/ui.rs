@@ -1,10 +1,9 @@
-use std::time::Duration;
-
 use bevy::{app::AppExit, prelude::*, window::CursorGrabMode};
 use bevy_egui::{
     egui::{self, Color32, FontId, Frame, Margin, TextStyle, Visuals},
     EguiContexts,
 };
+use instant::Duration;
 
 use crate::{
     events::StateEvents,

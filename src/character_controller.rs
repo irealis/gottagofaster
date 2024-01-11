@@ -57,10 +57,6 @@ pub struct CharacterController;
 #[component(storage = "SparseSet")]
 pub struct Grounded;
 
-/// A marker component indicating that an entity just landed on the ground.
-#[derive(Component)]
-pub struct JustGrounded;
-
 /// A marker component indicating that an entity is on the ground.
 #[derive(Component)]
 #[component(storage = "SparseSet")]
@@ -133,7 +129,7 @@ impl MovementBundle {
 
 impl Default for MovementBundle {
     fn default() -> Self {
-        Self::new(30.0, 0.9, 7.0, PI * 0.45)
+        Self::new(30.0, 0.96, 7.0, PI * 0.45)
     }
 }
 
@@ -237,12 +233,6 @@ fn update_grounded(
                 true
             }
         });
-
-        if !was_grounded && is_grounded {
-            commands.entity(entity).try_insert(JustGrounded);
-        } else {
-            commands.entity(entity).remove::<JustGrounded>();
-        }
 
         if is_grounded {
             // Try: prevent racecondition when unloading

@@ -10,7 +10,7 @@ use crate::{
     assets::{Animations, AssetHandles},
     camera::{CameraLeash, LeashedCamera},
     character_controller::{CharacterControllerBundle, Grounded, JumpCount, Sliding},
-    ghost::GhostData,
+    ghost::{Ghost, GhostData},
     input::ResetSnapshot,
     map::Map,
     MapEntityMarker, Player,
@@ -68,14 +68,18 @@ pub fn rotate_player_model(
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub fn update_player_animation(
-    mut query: Query<(
-        Entity,
-        &LinearVelocity,
-        Has<Grounded>,
-        Has<Sliding>,
-        &JumpCount,
-    )>,
+    mut query: Query<
+        (
+            Entity,
+            &LinearVelocity,
+            Has<Grounded>,
+            Has<Sliding>,
+            &JumpCount,
+        ),
+        With<Player>,
+    >,
     mut animation_player: Query<&mut AnimationPlayer>,
     animations: Res<Animations>,
     children: Query<&Children>,
@@ -84,7 +88,7 @@ pub fn update_player_animation(
     for (e, linear_velocity, is_grounded, is_sliding, jump_count) in &mut query {
         for entity in children.iter_descendants(e) {
             if let Ok(mut animation_player) = animation_player.get_mut(entity) {
-                if linear_velocity.0.length() > 2. && (is_sliding || is_grounded) {
+                if linear_velocity.0.length() > 1. && (is_sliding || is_grounded) {
                     animation_player
                         .play_with_transition(
                             animations.0[1].clone_weak(),

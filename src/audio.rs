@@ -1,22 +1,22 @@
-use std::time::SystemTime;
+use std::time::Instant;
 
 use bevy::{ecs::query::Has, prelude::*};
 
-use crate::character_controller::JustGrounded;
+use crate::{character_controller::Grounded, ghost::Ghost, timing::MapDuration};
 
 pub struct AudioPlugin;
 
 #[derive(Resource)]
 pub struct SoundsStatus {
     can_play_finish: bool,
-    last_grounded_timestamp: SystemTime,
+    last_grounded_timestamp: Instant,
 }
 
 impl Default for SoundsStatus {
     fn default() -> Self {
         SoundsStatus {
             can_play_finish: true,
-            last_grounded_timestamp: SystemTime::now(),
+            last_grounded_timestamp: Instant::now(),
         }
     }
 }
@@ -53,16 +53,13 @@ pub fn play_finish_sounds(
 /// Play sound when the character just touched the ground
 pub fn play_character_sounds(
     mut sound_status: ResMut<SoundsStatus>,
-    mut query: Query<Has<JustGrounded>>,
+    // MapDuration: Only present if the countdown has elapsed and the map is in progress
+    mut query: Query<Has<Grounded>, (Added<Grounded>, Without<Ghost>, With<MapDuration>)>,
     asset_server: Res<AssetServer>,
     mut commands: Commands,
 ) {
     for just_grounded in &mut query {
-        let time_since_last_grounded = sound_status
-            .last_grounded_timestamp
-            .elapsed()
-            .expect("system time cannot be in the past")
-            .as_millis();
+        let time_since_last_grounded = sound_status.last_grounded_timestamp.elapsed().as_millis();
 
         if just_grounded {
             if time_since_last_grounded > 500 {
@@ -71,7 +68,7 @@ pub fn play_character_sounds(
                     ..default()
                 });
             }
-            sound_status.last_grounded_timestamp = SystemTime::now();
+            sound_status.last_grounded_timestamp = Instant::now();
         }
     }
 }

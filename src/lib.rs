@@ -22,11 +22,12 @@ use assets::Animations;
 use bevy::{
     core_pipeline::experimental::taa::TemporalAntiAliasPlugin,
     ecs::system::SystemId,
+    pbr::PbrPlugin,
     prelude::*,
     window::{close_on_esc, PresentMode},
 };
 use bevy_egui::EguiPlugin;
-use bevy_hanabi::prelude::*;
+
 use bevy_xpbd_3d::prelude::*;
 use camera::{spawn_camera, LeashedCameraPlugin};
 use character_controller::CharacterControllerPlugin;
@@ -40,6 +41,10 @@ use physics::PhysicsLayers;
 use player::{rotate_player_model, spawn_player, update_player_animation};
 use scene::{setup_scene_once_loaded, unload};
 use ui::{spawn_countdown_display, to_main_menu};
+
+#[cfg(not(target_arch = "wasm32"))]
+use bevy_hanabi::prelude::*;
+#[cfg(not(target_arch = "wasm32"))]
 use vfx::{create_ground_effect, create_portal};
 
 use crate::{
@@ -107,11 +112,9 @@ pub fn bevy_main() {
                     mode: AssetMode::Unprocessed,
                     ..Default::default()
                 }),
-            TemporalAntiAliasPlugin,
             PhysicsPlugins::default(),
             CharacterControllerPlugin,
             AudioPlugin,
-            HanabiPlugin,
             GhostPlugin,
             EguiPlugin,
             //FramepacePlugin,
@@ -147,6 +150,11 @@ pub fn bevy_main() {
             (close_on_esc, ui_finish).run_if(in_state(State::Finished)),
         );
 
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        app.add_plugins((HanabiPlugin, TemporalAntiAliasPlugin));
+    }
+
     // Note: Enabling debug visualization has a big performance hit
     #[cfg(feature = "physics_debug")]
     app.add_plugins(PhysicsDebugPlugin::default())
@@ -163,7 +171,7 @@ pub fn load_map(
     map: Res<Map>,
     asset_handles: Res<AssetHandles>,
     assetserver: Res<AssetServer>,
-    mut effects: ResMut<Assets<EffectAsset>>,
+    #[cfg(not(target_arch = "wasm32"))] mut effects: ResMut<Assets<EffectAsset>>,
 ) {
     commands.insert_resource(Animations(vec![
         assetserver.load("Fox.gltf#Animation5"), // idle
@@ -176,50 +184,54 @@ pub fn load_map(
     spawn_camera(&mut commands, map.start_rotation.to_radians());
 
     spawn_map(assetserver, &map, &mut commands);
-    let portal = effects.add(create_portal());
 
-    commands.spawn((
-        Name::new("portal"),
-        ParticleEffectBundle {
-            effect: ParticleEffect::new(portal),
-            transform: Transform::from_translation(map.end_pos)
-                .with_scale(Vec3::splat(3.))
-                .with_rotation(Quat::from_rotation_y(map.end_rotation.to_radians())),
-            ..Default::default()
-        },
-        Collider::cuboid(10., 10., 3.),
-        Goal,
-        MapEntityMarker,
-    ));
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let ground_effect = effects.add(create_ground_effect());
 
-    let ground_effect = effects.add(create_ground_effect());
+        let portal = effects.add(create_portal());
 
-    let spawner = Spawner::once(100.0.into(), false);
-
-    commands
-        .spawn((
-            ParticleEffectBundle::new(ground_effect).with_spawner(spawner),
-            EffectProperties::default(),
-            MapEntityMarker,
-        ))
-        .insert(Name::new("effect"));
-
-    for checkpoint in &map.checkpoints {
+        #[cfg(not(target_arch = "wasm32"))]
         commands.spawn((
-            SceneBundle {
-                scene: asset_handles.tori.clone_weak(),
-                transform: Transform::from_translation(checkpoint.pos)
-                    .with_scale(Vec3::splat(2.))
-                    .with_rotation(Quat::from_rotation_y(checkpoint.rot.to_radians())),
+            Name::new("portal"),
+            ParticleEffectBundle {
+                effect: ParticleEffect::new(portal),
+                transform: Transform::from_translation(map.end_pos)
+                    .with_scale(Vec3::splat(3.))
+                    .with_rotation(Quat::from_rotation_y(map.end_rotation.to_radians())),
                 ..Default::default()
             },
-            Sensor,
-            CollisionLayers::new([PhysicsLayers::Sensor], [PhysicsLayers::Sensor]),
-            Collider::cuboid(10., 20., 3.),
-            RigidBody::Static,
-            Checkpoint { reached: false },
+            Collider::cuboid(10., 10., 3.),
+            Goal,
             MapEntityMarker,
         ));
+        let spawner = Spawner::once(100.0.into(), false);
+
+        commands
+            .spawn((
+                ParticleEffectBundle::new(ground_effect).with_spawner(spawner),
+                EffectProperties::default(),
+                MapEntityMarker,
+            ))
+            .insert(Name::new("effect"));
+
+        for checkpoint in &map.checkpoints {
+            commands.spawn((
+                SceneBundle {
+                    scene: asset_handles.tori.clone_weak(),
+                    transform: Transform::from_translation(checkpoint.pos)
+                        .with_scale(Vec3::splat(2.))
+                        .with_rotation(Quat::from_rotation_y(checkpoint.rot.to_radians())),
+                    ..Default::default()
+                },
+                Sensor,
+                CollisionLayers::new([PhysicsLayers::Sensor], [PhysicsLayers::Sensor]),
+                Collider::cuboid(10., 20., 3.),
+                RigidBody::Static,
+                Checkpoint { reached: false },
+                MapEntityMarker,
+            ));
+        }
     }
 
     if let Some(pads) = &map.pads {
