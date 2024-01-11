@@ -21,7 +21,7 @@ opt-level = 3
 codegen-units = 1 # Slower compile but faster at runtime
 
 [dependencies]
-bevy = { version = "0.12.1", features = ["serialize", "jpeg"] }
+bevy = { version = "0.12.1", features = ["serialize", "jpeg", "webgl2"] }
 
 # Note: Tracy is very useful for debuggin perf things, but its memory usage grows extremely quickly.
 #bevy = { version = "0.12.1", features = ["serialize", "jpeg", "trace", "trace_tracy"] }
@@ -29,11 +29,13 @@ bevy-inspector-egui = "0.21.0"
 bevy_editor_pls = "0.6.0"
 bevy_egui = "0.23.0"
 bevy_framepace = "0.14.1"
-bevy_hanabi = { git = "https://github.com/djeedai/bevy_hanabi", default-features = false, features = ["3d"] }
 bevy_mod_picking = "0.17.0"
-bevy_transform_gizmo = "0.9.0"
 bevy_tweening = { version = "0.9.0" }
 bevy_xpbd_3d = { git = "https://github.com/Jondolf/bevy_xpbd", features = ["simd", "parallel"] }
+instant = "0.1.12"
 rand = "0.8.5"
 serde = {version = "1.0.193", features = ["serde_derive"]}
 serde_json = "1.0.108"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+bevy_hanabi = { git = "https://github.com/djeedai/bevy_hanabi", default-features = false, features = ["3d"] }

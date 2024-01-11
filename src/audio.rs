@@ -1,6 +1,5 @@
-use std::time::Instant;
-
 use bevy::{ecs::query::Has, prelude::*};
+use instant::Instant;
 
 use crate::{character_controller::Grounded, ghost::Ghost, timing::MapDuration};
 

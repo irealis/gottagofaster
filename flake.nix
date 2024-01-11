@@ -15,7 +15,7 @@
       };
 	  rust = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default.override {
 	    extensions = [ "rust-src" "rust-analyzer" "rust-std" ];
-	    targets = [ "x86_64-unknown-linux-gnu"];
+	    targets = [ "x86_64-unknown-linux-gnu" "wasm32-unknown-unknown"];
 	  });
       buildInputs = with pkgs; [
         libxkbcommon

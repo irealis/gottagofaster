@@ -40,7 +40,20 @@ impl From<&str> for Map {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
+const STATIC_MAPS: [(&str, &str); 2] = [
+    ("autumn", include_str!("../maps/autumn")),
+    ("up", include_str!("../maps/up")),
+];
+
 impl Map {
+    #[cfg(target_arch = "wasm32")]
+    pub fn load(name: &str) -> Self {
+        let map = STATIC_MAPS.iter().find(|m| m.0 == name);
+        serde_json::from_str::<Map>(map.unwrap().1).expect("Map could not be loaded from json")
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn load(name: &str) -> Self {
         let path = Path::new("maps").join(name);
         if !path.exists() {
@@ -50,7 +63,7 @@ impl Map {
         let mut file = File::open(path).unwrap();
         let mut contents = String::new();
         file.read_to_string(&mut contents).unwrap();
-        serde_json::from_str::<Map>(&contents).expect("Map could not be load from json")
+        serde_json::from_str::<Map>(&contents).expect("Map could not be loaded from json")
     }
 
     pub fn collider_type(&self) -> ComputedCollider {
@@ -63,6 +76,12 @@ impl Map {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
+pub fn all_maps() -> Vec<String> {
+    STATIC_MAPS.iter().map(|m| m.0.to_string()).collect()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 pub fn all_maps() -> Vec<String> {
     let path = Path::new("maps");
     let dir = path.read_dir().unwrap();

@@ -12,7 +12,7 @@ use bevy_egui::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{map::Map, Maps};
+use crate::map::Map;
 pub struct LeaderboardPlugin;
 
 #[derive(Event)]
@@ -30,11 +30,20 @@ impl Plugin for LeaderboardPlugin {
                     in_state(crate::State::Finished).or_else(in_state(crate::State::Leaderboard)),
                 ),
             )
-            .add_systems(PostUpdate, add_highscore);
+            .add_systems(
+                PostUpdate,
+                add_highscore.run_if(on_event::<LeaderboardEvent>()),
+            );
     }
 }
 
 fn load_highscores(mut commands: Commands) {
+    #[cfg(target_arch = "wasm32")]
+    {
+        commands.init_resource::<MapHighscores>();
+        return;
+    }
+
     let path = Path::new("maps").join("highscores.json");
     if !path.exists() {
         File::create(path).unwrap();
