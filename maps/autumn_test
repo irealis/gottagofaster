@@ -1,9 +1,0 @@
-{
-    "name": "autumn",
-    "file": "autumn",
-    "start_pos": [0.0,10.0,0.0],
-    "end_pos": [20.0,0.0,0.0],
-    "end_rotation": 90.0,
-    "start_rotation": 90.0,
-    "checkpoints": []
-}

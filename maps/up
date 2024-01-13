@@ -1,9 +1,10 @@
 {
     "name": "up",
     "collidertype": 0,
-    "file": "up",
+    "file": "autumn",
+    "scene": "Scene2",
     "start_pos": [0.0,3.0,0.0],
-    "end_pos": [516.0,60.0,215.0],
+    "end_pos": [352.0046, 285.9712, -363.32535],
     "end_rotation": 90.0,
     "start_rotation": 90.0,
     "checkpoints": [
