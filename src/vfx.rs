@@ -1,5 +1,8 @@
 use bevy::{pbr::NotShadowCaster, prelude::*};
 
+use crate::character_controller::GroundEvent;
+use crate::character_controller::JumpResetCooldown;
+
 use crate::timing::MapDuration;
 #[cfg(not(target_arch = "wasm32"))]
 use bevy_hanabi::prelude::*;
@@ -27,21 +30,16 @@ impl Plugin for VfxPlugin {
 #[allow(clippy::type_complexity)]
 pub fn emit_ground_effect(
     mut effect: Query<(&mut EffectSpawner, &mut EffectProperties, &mut Transform), Without<Player>>,
-    query: Query<
-        &Transform,
-        (
-            With<Player>,
-            With<MapDuration>,
-            Or<(Added<Sliding>, Added<Grounded>)>,
-        ),
-    >,
+    mut er: EventReader<GroundEvent>,
 ) {
-    if let Ok(ptransform) = query.get_single() {
-        if let Ok((mut spawner, mut properties, mut transform)) = effect.get_single_mut() {
-            // encoded as `0xAABBGGRR`
-            properties.set("particle_color", Vec4::new(1., 0., 0., 1.).into());
-            transform.translation = ptransform.translation;
-            spawner.reset();
+    for e in er.read() {
+        if let GroundEvent::Grounded(translation) = e {
+            if let Ok((mut spawner, mut properties, mut transform)) = effect.get_single_mut() {
+                // encoded as `0xAABBGGRR`
+                properties.set("particle_color", Vec4::new(1., 0., 0., 1.).into());
+                transform.translation = *translation;
+                spawner.reset();
+            }
         }
     }
 }

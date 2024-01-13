@@ -1,5 +1,6 @@
 use bevy::{ecs::query::Has, prelude::*};
 use bevy_xpbd_3d::{math::*, prelude::*, SubstepSchedule, SubstepSet};
+use instant::Duration;
 
 use crate::{camera::LeashedCamera, physics::PhysicsLayers, timing::MapDuration};
 
@@ -11,6 +12,8 @@ pub struct CharacterControllerPlugin;
 impl Plugin for CharacterControllerPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<MovementAction>()
+            .add_event::<GroundEvent>()
+            .add_systems(PreUpdate, tick_cooldown)
             .add_systems(
                 Update,
                 (
@@ -21,6 +24,7 @@ impl Plugin for CharacterControllerPlugin {
                     movement,
                     apply_movement_damping,
                     decay_multiplier,
+                    delayed_reset,
                 )
                     .chain()
                     .run_if(in_state(crate::State::Playing)),
@@ -43,6 +47,12 @@ impl Plugin for CharacterControllerPlugin {
 pub enum MovementAction {
     Move(Vector3),
     Jump,
+}
+
+#[derive(Event)]
+pub enum GroundEvent {
+    Grounded(Vec3),
+    Reset,
 }
 
 #[derive(Component)]
@@ -87,6 +97,9 @@ pub struct ControllerGravity(Vector);
 #[derive(Component)]
 pub struct MaxSlopeAngle(pub Scalar);
 
+#[derive(Component)]
+pub struct JumpResetCooldown(pub Timer);
+
 /// A bundle that contains the components needed for a basic
 /// kinematic character controller.
 #[derive(Bundle)]
@@ -98,6 +111,7 @@ pub struct CharacterControllerBundle {
     gravity: ControllerGravity,
     movement: MovementBundle,
     jump_count: JumpCount,
+    reset_timer: JumpResetCooldown,
 }
 
 /// A bundle that contains components for character movement.
@@ -139,6 +153,8 @@ impl CharacterControllerBundle {
         let mut caster_shape = collider.clone();
         caster_shape.set_scale(Vector::ONE * 0.99, 10);
 
+        let timer = JumpResetCooldown(Timer::new(Duration::from_millis(300), TimerMode::Once));
+
         Self {
             character_controller: CharacterController,
             rigid_body: RigidBody::Kinematic,
@@ -154,6 +170,7 @@ impl CharacterControllerBundle {
             gravity: ControllerGravity(gravity),
             movement: MovementBundle::default(),
             jump_count: JumpCount(0),
+            reset_timer: timer,
         }
     }
 
@@ -199,16 +216,30 @@ fn update_grounded(
     mut query: Query<
         (
             Entity,
+            &Transform,
             &ShapeHits,
             &Rotation,
             Option<&MaxSlopeAngle>,
             Has<Grounded>,
+            Has<Sliding>,
+            &mut JumpResetCooldown,
         ),
         With<CharacterController>,
     >,
+    mut ew: EventWriter<GroundEvent>,
     layers: Query<&CollisionLayers>,
 ) {
-    for (entity, hits, rotation, max_slope_angle, was_grounded) in &mut query {
+    for (
+        entity,
+        transform,
+        hits,
+        rotation,
+        max_slope_angle,
+        was_grounded,
+        was_sliding,
+        mut jump_reset_cd,
+    ) in &mut query
+    {
         // The character is grounded if the shape caster has a hit with a normal
         // that isn't too steep.
         let mut is_sliding = false;
@@ -246,6 +277,15 @@ fn update_grounded(
         } else {
             commands.entity(entity).remove::<Sliding>();
         }
+
+        #[allow(clippy::nonminimal_bool)] // The suggestion is completely unreadable
+        // Only emit the event if the "grounded|sliding" status is new
+        if ((is_grounded && !was_sliding && !was_grounded)
+            || (is_sliding && !was_grounded && !was_sliding))
+            && jump_reset_cd.0.finished()
+        {
+            ew.send(GroundEvent::Grounded(transform.translation));
+        }
     }
 }
 
@@ -260,6 +300,7 @@ fn movement(
             &mut LinearVelocity,
             &mut JumpCount,
             &mut AccelerationMultiplier,
+            &mut JumpResetCooldown,
             Has<Grounded>,
             Has<Sliding>,
         ),
@@ -277,6 +318,7 @@ fn movement(
                 mut linear_velocity,
                 mut jump_count,
                 mut acc_mul,
+                mut timer,
                 is_grounded,
                 is_sliding,
             ) in &mut controllers
@@ -290,16 +332,33 @@ fn movement(
                             direction.z * movement_acceleration.0 * acc_mul.0 * delta_time;
                     }
                     MovementAction::Jump => {
-                        if is_grounded || is_sliding {
+                        if (is_grounded || is_sliding) && timer.0.finished() {
                             acc_mul.0 += 1.1;
                             jump_count.0 = 0;
                             linear_velocity.y = jump_impulse.0;
+                            timer.0.reset();
                         } else if jump_count.0 < 2 {
                             jump_count.0 += 1;
                             linear_velocity.y = jump_impulse.0;
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+fn tick_cooldown(mut query: Query<&mut JumpResetCooldown>, time: Res<Time>) {
+    for mut cd in &mut query {
+        cd.0.tick(time.delta());
+    }
+}
+
+fn delayed_reset(mut er: EventReader<GroundEvent>, mut query: Query<&mut JumpResetCooldown>) {
+    for e in er.read() {
+        if let GroundEvent::Reset = e {
+            if let Ok(mut cd) = query.get_single_mut() {
+                cd.0.reset();
             }
         }
     }

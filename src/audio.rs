@@ -1,7 +1,11 @@
 use bevy::{ecs::query::Has, prelude::*};
 use instant::Instant;
 
-use crate::{character_controller::Grounded, ghost::Ghost, timing::MapDuration};
+use crate::{
+    character_controller::{GroundEvent, Grounded},
+    ghost::Ghost,
+    timing::MapDuration,
+};
 
 pub struct AudioPlugin;
 
@@ -51,24 +55,15 @@ pub fn play_finish_sounds(
 
 /// Play sound when the character just touched the ground
 pub fn play_character_sounds(
-    mut sound_status: ResMut<SoundsStatus>,
-    // MapDuration: Only present if the countdown has elapsed and the map is in progress
-    mut query: Query<Has<Grounded>, (Added<Grounded>, Without<Ghost>, With<MapDuration>)>,
-    asset_server: Res<AssetServer>,
     mut commands: Commands,
+    mut er: EventReader<GroundEvent>,
+    asset_server: Res<AssetServer>,
 ) {
-    for just_grounded in &mut query {
-        let time_since_last_grounded = sound_status.last_grounded_timestamp.elapsed().as_millis();
-
-        if just_grounded {
-            if time_since_last_grounded > 500 {
-                commands.spawn(AudioBundle {
-                    source: asset_server.load("landing_sound.ogg"),
-                    ..default()
-                });
-            }
-            sound_status.last_grounded_timestamp = Instant::now();
-        }
+    for _ in er.read() {
+        commands.spawn(AudioBundle {
+            source: asset_server.load("landing_sound.ogg"),
+            ..default()
+        });
     }
 }
 

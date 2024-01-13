@@ -1,11 +1,9 @@
 use bevy::prelude::*;
-use bevy_xpbd_3d::prelude::{
-    AsyncSceneCollider, Collider, CollisionLayers, ComputedCollider, RigidBody, Sensor,
-};
+use bevy_xpbd_3d::prelude::{Collider, CollisionLayers, RigidBody, Sensor};
 
 use crate::{
-    assets::AssetHandles, character_controller::MaxSlopeAngle, checkpoint::Checkpoint, load_map,
-    map::Map, physics::PhysicsLayers, MapEntityMarker, MapMarker, Player,
+    assets::AssetHandles, character_controller::MaxSlopeAngle, checkpoint::Checkpoint, map::Map,
+    physics::PhysicsLayers, MapEntityMarker, Player,
 };
 
 pub fn debug_things(
