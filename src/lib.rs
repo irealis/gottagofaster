@@ -1,3 +1,4 @@
+#![allow(clippy::type_complexity)]
 mod assets;
 mod audio;
 mod camera;
@@ -22,7 +23,6 @@ use assets::Animations;
 use bevy::{
     core_pipeline::experimental::taa::TemporalAntiAliasPlugin,
     ecs::system::SystemId,
-    pbr::PbrPlugin,
     prelude::*,
     window::{close_on_esc, PresentMode},
 };
@@ -36,7 +36,7 @@ use environment::spawn_sky;
 use events::{EventPlugin, StateEvents};
 use jumppad::Jumppad;
 use leaderboard::LeaderboardPlugin;
-use map::{all_maps, spawn_map, Map};
+use map::{add_collision_layers, all_maps, spawn_map, Map};
 use physics::PhysicsLayers;
 use player::{rotate_player_model, spawn_player, update_player_animation};
 use scene::{setup_scene_once_loaded, unload};
@@ -126,6 +126,7 @@ pub fn bevy_main() {
         ))
         .add_plugins(LeashedCameraPlugin)
         .add_systems(Startup, (setup, setup_ui, setup_oneshots))
+        .add_systems(PreUpdate, add_collision_layers)
         .add_systems(
             Update,
             (close_on_esc, ui_mainscreen).run_if(in_state(State::Mainscreen)),
@@ -173,6 +174,8 @@ pub fn load_map(
     asset_handles: Res<AssetHandles>,
     assetserver: Res<AssetServer>,
     #[cfg(not(target_arch = "wasm32"))] mut effects: ResMut<Assets<EffectAsset>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.insert_resource(Animations(vec![
         assetserver.load("Fox.gltf#Animation5"), // idle
@@ -192,7 +195,6 @@ pub fn load_map(
 
         let portal = effects.add(create_portal());
 
-        #[cfg(not(target_arch = "wasm32"))]
         commands.spawn((
             Name::new("portal"),
             ParticleEffectBundle {
@@ -206,6 +208,7 @@ pub fn load_map(
             Goal,
             MapEntityMarker,
         ));
+
         let spawner = Spawner::once(100.0.into(), false);
 
         commands
@@ -234,6 +237,20 @@ pub fn load_map(
             ));
         }
     }
+
+    let mesh = meshes.add(Mesh::from(shape::Torus::default()));
+    let material = materials.add(StandardMaterial {
+        base_color: Color::hex("e9bb93f0").unwrap(),
+        ..Default::default()
+    });
+    // inside wasm the goal can't be particle effects as there are no compute shaders:
+    #[cfg(target_arch = "wasm32")]
+    commands.spawn((
+        Name::new("portal"),
+        Collider::cuboid(10., 10., 3.),
+        Goal,
+        MapEntityMarker,
+    ));
 
     if let Some(pads) = &map.pads {
         for pad in pads {

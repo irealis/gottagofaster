@@ -2,11 +2,11 @@ use std::{fs::File, io::Read, path::Path};
 
 use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::{
-    AsyncSceneCollider, CollisionLayers, ComputedCollider, RigidBody, VHACDParameters,
+    AsyncSceneCollider, Collider, CollisionLayers, ComputedCollider, RigidBody, VHACDParameters,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{physics::PhysicsLayers, MapEntityMarker, MapMarker};
+use crate::{checkpoint, physics::PhysicsLayers, MapEntityMarker, MapMarker};
 
 #[derive(Resource, Debug, Serialize, Deserialize)]
 pub struct Map {
@@ -116,6 +116,24 @@ pub fn spawn_map(
         },
         MapEntityMarker,
         MapMarker,
-        CollisionLayers::new([PhysicsLayers::Ground], [PhysicsLayers::Player]),
     ));
+}
+
+pub fn add_collision_layers(
+    mut commands: Commands,
+    query: Query<(Entity, Option<&Name>, &Parent), Added<Collider>>,
+    checkpoints: Query<Has<checkpoint::Checkpoint>>,
+) {
+    for (e, name, parent) in query.iter() {
+        if checkpoints.get(parent.get()).is_ok() {
+            continue;
+        }
+        if let Some(name) = name {
+            println!("Inserting collider for {name}");
+            commands.entity(e).insert(CollisionLayers::new(
+                [PhysicsLayers::Ground],
+                [PhysicsLayers::Player],
+            ));
+        }
+    }
 }

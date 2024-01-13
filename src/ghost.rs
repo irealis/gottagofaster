@@ -83,8 +83,12 @@ pub fn store_ghost(
 
     println!("New ghost is faster, overwriting old ghost.");
     // Create or truncate file
-    let mut file = File::create(format!("maps/{}.replay", &map.name)).unwrap();
-    _ = file.write_all(serialized.as_bytes());
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let mut file = File::create(format!("maps/{}.replay", &map.name)).unwrap();
+        _ = file.write_all(serialized.as_bytes());
+    }
 }
 
 pub fn ghost_recorder(
