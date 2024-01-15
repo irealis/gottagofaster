@@ -12,7 +12,7 @@ use bevy_egui::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::map::Map;
+use crate::{map::Map, State};
 pub struct LeaderboardPlugin;
 
 #[derive(Event)]
@@ -67,6 +67,7 @@ fn display_leaderboard(
     mut contexts: EguiContexts,
     highscores: Res<MapHighscores>,
     map: Option<Res<Map>>,
+    mut state: ResMut<NextState<State>>,
 ) {
     let ctx = contexts.ctx_mut();
     // if there is a map, only display the current maps highscores.
@@ -118,6 +119,12 @@ fn display_leaderboard(
                                 ui.label(format!("{}", h));
                             }
                         });
+                    }
+                });
+                ui.vertical_centered(|ui| {
+                    let btn = ui.button("Back");
+                    if btn.clicked() {
+                        state.set(crate::State::Mainscreen);
                     }
                 });
             });
