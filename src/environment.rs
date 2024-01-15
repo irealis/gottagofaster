@@ -9,8 +9,8 @@ pub fn spawn_sky(
     materials: &mut ResMut<Assets<StandardMaterial>>,
 ) {
     let cascade_shadow_config = CascadeShadowConfigBuilder {
-        first_cascade_far_bound: 100.,
-        maximum_distance: 600.0,
+        first_cascade_far_bound: 50.,
+        maximum_distance: 200.0,
         ..default()
     }
     .build();
